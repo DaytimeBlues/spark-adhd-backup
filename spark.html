@@ -18,6 +18,10 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 
+  <!-- Google API -->
+  <script src="https://apis.google.com/js/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
   <script>
     tailwind.config = {
       theme: {
@@ -677,6 +681,96 @@
     }
 
     const offlineSync = new OfflineSyncManager();
+
+    // ============================================
+    // GOOGLE AUTH + TASKS API
+    // ============================================
+    const GOOGLE_CLIENT_ID = '474078142013-5hruq35gdk11gmt7drdp0ttnl4f6pqbg.apps.googleusercontent.com';
+    const TASKS_SCOPES = 'https://www.googleapis.com/auth/tasks';
+
+    class GoogleAuthManager {
+      constructor() {
+        this.tokenClient = null;
+        this.accessToken = null;
+        this.isReady = false;
+        this.onAuthChange = null;
+      }
+
+      async init() {
+        return new Promise((resolve) => {
+          const checkGoogle = () => {
+            if (window.google?.accounts?.oauth2) {
+              this.tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CLIENT_ID,
+                scope: TASKS_SCOPES,
+                callback: (tokenResponse) => {
+                  if (tokenResponse.access_token) {
+                    this.accessToken = tokenResponse.access_token;
+                    this.loadTasksApi();
+                    this.onAuthChange?.(true);
+                  }
+                },
+              });
+              this.isReady = true;
+              resolve(true);
+            } else {
+              setTimeout(checkGoogle, 100);
+            }
+          };
+          checkGoogle();
+        });
+      }
+
+      async loadTasksApi() {
+        if (!window.gapi) return;
+        return new Promise((resolve) => {
+          gapi.load('client', async () => {
+            await gapi.client.init({});
+            await gapi.client.load('tasks', 'v1');
+            gapi.client.setToken({ access_token: this.accessToken });
+            resolve();
+          });
+        });
+      }
+
+      signIn() {
+        if (!this.tokenClient) {
+          pushToast('Google API not ready. Please try again.', 'error');
+          return;
+        }
+        this.tokenClient.requestAccessToken();
+      }
+
+      signOut() {
+        if (this.accessToken) {
+          google.accounts.oauth2.revoke(this.accessToken);
+          this.accessToken = null;
+          this.onAuthChange?.(false);
+        }
+      }
+
+      isSignedIn() {
+        return Boolean(this.accessToken);
+      }
+
+      async createTask(title, due, notes) {
+        if (!this.isSignedIn()) {
+          throw new Error('Not signed in');
+        }
+
+        const response = await gapi.client.tasks.tasks.insert({
+          tasklist: '@default',
+          resource: {
+            title,
+            due: due || undefined,
+            notes: notes || 'Created from Spark — Brain Dump',
+          },
+        });
+        return response.result;
+      }
+    }
+
+    const googleAuth = new GoogleAuthManager();
 
     // ============================================
     // CONFETTI PARTICLES
@@ -1950,6 +2044,7 @@
       useEffect(() => {
         notificationManager.setOnDenied((message) => setBanner(message));
         notificationManager.init();
+        googleAuth.init();
         offlineSync.flushQueue();
       }, []);
 
