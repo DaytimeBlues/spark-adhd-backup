@@ -1,10 +1,14 @@
 {
   "hosting": {
+    "site": "spark-adhd",
     "public": ".",
     "ignore": [
       "firebase.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/*.pdf",
+      "**/*.patch",
+      "**/*.md"
     ],
     "rewrites": [
       {
