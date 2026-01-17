@@ -1,10 +1,9 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { View, StyleSheet, TouchableOpacity, StyleProp, ViewStyle } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withSpring,
-    withTiming
 } from "react-native-reanimated";
 
 interface ScaleButtonProps {
@@ -15,10 +14,6 @@ interface ScaleButtonProps {
     testID?: string;
 }
 
-/**
- * A wrapper that scales down when pressed.
- * Implements Fitts's Law feedback principle.
- */
 const ScaleButton = ({
     onPress,
     children,

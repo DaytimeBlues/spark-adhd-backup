@@ -1,15 +1,14 @@
-import React, { useEffect } from "react";
+/**
+ * HeroStreak.web.tsx
+ * Web-specific implementation: NO Reanimated import.
+ * Renders static pulse circles instead of animated ones.
+ * This file is automatically resolved by webpack when Platform.OS === 'web'
+ * due to resolve.extensions order: ['.web.tsx', '.tsx']
+ */
+import React from "react";
 import { View, StyleSheet } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import Animated, {
-    useSharedValue,
-    useAnimatedStyle,
-    withRepeat,
-    withTiming,
-    withSequence,
-    Easing,
-} from "react-native-reanimated";
-import { colors, radius, spacing } from "../../theme";
+import { colors, spacing } from "../../theme";
 import AppText from "./AppText";
 import GlassCard from "./GlassCard";
 
@@ -17,8 +16,28 @@ interface HeroStreakProps {
     streak: number;
 }
 
+// Static pulse circle for web (no animation)
+const PulseCircle = ({ index }: { index: number }) => {
+    // Stagger opacity and scale slightly for visual depth
+    const scales = [1.0, 1.2, 1.4];
+    const opacities = [0.3, 0.2, 0.1];
+
+    return (
+        <View
+            testID="pulse-circle"
+            style={[
+                styles.pulse,
+                {
+                    opacity: opacities[index] || 0.2,
+                    transform: [{ scale: scales[index] || 1.2 }],
+                },
+            ]}
+        />
+    );
+};
+
 const HeroStreak = ({ streak }: HeroStreakProps) => {
-    const pulses = [1, 2, 3];
+    const pulses = [0, 1, 2];
 
     return (
         <View style={styles.container}>
@@ -29,9 +48,9 @@ const HeroStreak = ({ streak }: HeroStreakProps) => {
                     </AppText>
 
                     <View style={styles.flameContainer}>
-                        {/* Pulsing circles behind the flame */}
-                        {pulses.map((_, i) => (
-                            <PulseCircle key={i} delay={i * 400} />
+                        {/* Static pulse circles behind the flame */}
+                        {pulses.map((i) => (
+                            <PulseCircle key={i} index={i} />
                         ))}
 
                         <Icon
@@ -58,38 +77,6 @@ const HeroStreak = ({ streak }: HeroStreakProps) => {
             </GlassCard>
         </View>
     );
-};
-
-// Sub-component for animation (Native only - web uses HeroStreak.web.tsx)
-const PulseCircle = ({ delay }: { delay: number }) => {
-    const scale = useSharedValue(0.8);
-    const opacity = useSharedValue(0.6);
-
-    useEffect(() => {
-        scale.value = withRepeat(
-            withSequence(
-                withTiming(1.5, { duration: 2000, easing: Easing.out(Easing.ease) }),
-                withTiming(0.8, { duration: 0 }) // Reset
-            ),
-            -1,
-            false
-        );
-        opacity.value = withRepeat(
-            withSequence(
-                withTiming(0, { duration: 2000, easing: Easing.out(Easing.ease) }),
-                withTiming(0.6, { duration: 0 }) // Reset
-            ),
-            -1,
-            false
-        );
-    }, []);
-
-    const style = useAnimatedStyle(() => ({
-        transform: [{ scale: scale.value }],
-        opacity: opacity.value,
-    }));
-
-    return <Animated.View style={[styles.pulse, style]} />;
 };
 
 const styles = StyleSheet.create({
@@ -119,11 +106,7 @@ const styles = StyleSheet.create({
     },
     icon: {
         zIndex: 2,
-        // Add subtle shadow for the icon itself
-        textShadowColor: "rgba(255, 107, 107, 0.5)",
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 20,
-    } as any,
+    },
     pulse: {
         position: "absolute",
         width: 80,
