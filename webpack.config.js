@@ -20,7 +20,7 @@ module.exports = {
         rules: [
             {
                 test: /\.(js|jsx|ts|tsx)$/,
-                exclude: /node_modules\/(?!(react-native-vector-icons)\/).*/,
+                exclude: /node_modules\/(?!(react-native-vector-icons|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native|@react-navigation)\/).*/,
                 use: {
                     loader: 'babel-loader',
                     options: {
@@ -28,6 +28,11 @@ module.exports = {
                             '@babel/preset-env',
                             '@babel/preset-react',
                             '@babel/preset-typescript',
+                        ],
+                        plugins: [
+                            ['@babel/plugin-transform-class-properties', { loose: true }],
+                            ['@babel/plugin-transform-private-methods', { loose: true }],
+                            ['@babel/plugin-transform-private-property-in-object', { loose: true }],
                         ],
                     },
                 },
