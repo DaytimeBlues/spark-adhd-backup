@@ -1,0 +1,66 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e11]:
+  - generic [ref=e26]:
+    - generic [ref=e27]:
+      - generic [ref=e28]: Spark
+      - generic [ref=e29]: Your focus companion
+    - generic [ref=e32]:
+      - generic [ref=e33]: Current Streak
+      - generic [ref=e38]: 󰈸
+      - generic [ref=e39]:
+        - generic [ref=e40]: "0"
+        - generic [ref=e41]: days
+      - generic [ref=e42]: You're on fire! Keep the momentum going.
+    - generic [ref=e43]:
+      - generic [ref=e46] [cursor=pointer]:
+        - generic [ref=e48]: 󰈸
+        - generic [ref=e49]: Ignite
+        - generic [ref=e50]: 5-min focus timer
+      - generic [ref=e53] [cursor=pointer]:
+        - generic [ref=e55]: 󰖝
+        - generic [ref=e56]: Fog Cutter
+        - generic [ref=e57]: Break tasks down
+      - generic [ref=e60] [cursor=pointer]:
+        - generic [ref=e62]: 󱤥
+        - generic [ref=e63]: Pomodoro
+        - generic [ref=e64]: Classic timer
+      - generic [ref=e67] [cursor=pointer]:
+        - generic [ref=e69]: 󰀱
+        - generic [ref=e70]: Anchor
+        - generic [ref=e71]: Breathing exercises
+      - generic [ref=e74] [cursor=pointer]:
+        - generic [ref=e76]: 󰄨
+        - generic [ref=e77]: Check In
+        - generic [ref=e78]: Mood & energy
+      - generic [ref=e81] [cursor=pointer]:
+        - generic [ref=e83]: 󰀩
+        - generic [ref=e84]: Crisis Mode
+        - generic [ref=e85]: Safety resources
+  - tablist [ref=e87]:
+    - link "󰋜 󰚡 Home" [ref=e88] [cursor=pointer]:
+      - /url: /Main
+      - generic:
+        - generic [ref=e90]: 󰋜
+        - generic [ref=e92]: 󰚡
+      - generic [ref=e93]: Home
+    - link "󱐋 󱐌 Focus" [ref=e94] [cursor=pointer]:
+      - /url: /Main/focus
+      - generic:
+        - generic [ref=e96]: 󱐋
+        - generic [ref=e98]: 󱐌
+      - generic [ref=e99]: Focus
+    - link "󰅍 󰨸 Tasks" [ref=e100] [cursor=pointer]:
+      - /url: /Main/tasks
+      - generic:
+        - generic [ref=e102]: 󰅍
+        - generic [ref=e104]: 󰨸
+      - generic [ref=e105]: Tasks
+    - link "󰃭 󰭧 Calendar" [ref=e106] [cursor=pointer]:
+      - /url: /Main/calendar
+      - generic:
+        - generic [ref=e108]: 󰃭
+        - generic [ref=e110]: 󰭧
+      - generic [ref=e111]: Calendar
+```

@@ -14,7 +14,9 @@
     "test:coverage": "jest --coverage",
     "test:e2e:android": "detox test -c android.debug",
     "build:android": "cd android && ./gradlew assembleDebug",
-    "build:release": "cd android && ./gradlew assembleRelease"
+    "build:release": "cd android && ./gradlew assembleRelease",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "^1.23.1",
@@ -42,6 +44,7 @@
     "@babel/preset-env": "^7.24.7",
     "@babel/preset-react": "^7.28.5",
     "@babel/runtime": "^7.24.7",
+    "@playwright/test": "^1.57.0",
     "@react-native/babel-preset": "0.74.87",
     "@react-native/eslint-config": "0.74.87",
     "@react-native/metro-config": "0.74.87",
