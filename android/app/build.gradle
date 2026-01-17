@@ -1,4 +1,8 @@
-apply plugin: "com.facebook.react"
+plugins {
+    id "com.android.application"
+    id "com.facebook.react"
+}
+
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
 android {
