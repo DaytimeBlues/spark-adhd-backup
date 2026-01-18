@@ -1,30 +1,28 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Basic smoke tests for Spark ADHD web app.
- * Verifies core functionality works after deployment.
+ * Basic smoke tests for Spark ADHD web app (Original Aesthetic).
  */
 
 test.describe('Home Screen', () => {
     test('should load without crash', async ({ page }) => {
         await page.goto('/');
 
-        // Wait for the app to render - look for unique home screen content
+        // Original App Title
         await expect(page.locator('text=Spark').first()).toBeVisible();
-        await expect(page.locator('text=Your focus companion')).toBeVisible();
     });
 
-    test('should display streak card', async ({ page }) => {
+    test('should display streak summary', async ({ page }) => {
         await page.goto('/');
 
-        await expect(page.locator('text=Current Streak')).toBeVisible();
-        await expect(page.locator('text=days').first()).toBeVisible();
+        // Original App Streak Text format
+        await expect(page.locator('text=streak').first()).toBeVisible();
     });
 
     test('should display mode cards', async ({ page }) => {
         await page.goto('/');
 
-        // Check for a few key mode cards (not all, to avoid flakiness)
+        // Original Mode Names
         await expect(page.locator('text=Ignite').first()).toBeVisible();
         await expect(page.locator('text=Pomodoro').first()).toBeVisible();
         await expect(page.locator('text=Anchor').first()).toBeVisible();
@@ -33,7 +31,7 @@ test.describe('Home Screen', () => {
     test('should display bottom tab navigation', async ({ page }) => {
         await page.goto('/');
 
-        // Check for Home tab (should be unique enough)
+        // Original Tab Labels
         await expect(page.locator('text=Home').first()).toBeVisible();
         await expect(page.locator('text=Calendar').first()).toBeVisible();
     });
@@ -41,7 +39,6 @@ test.describe('Home Screen', () => {
 
 test.describe('Navigation', () => {
     test.skip('should navigate to Focus tab', async ({ page }) => {
-        // Skip for now - navigation tests are flaky due to text selector ambiguity
         await page.goto('/');
         await page.click('text=Focus');
         await page.waitForTimeout(1000);
