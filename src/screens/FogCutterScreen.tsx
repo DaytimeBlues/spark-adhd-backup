@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   SafeAreaView,
   FlatList,
 } from 'react-native';
+import StorageService from '../services/StorageService';
+import {generateId} from '../utils/helpers';
 
 interface Task {
   id: string;
@@ -22,6 +24,28 @@ const FogCutterScreen = () => {
   const [newStep, setNewStep] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
 
+  useEffect(() => {
+    const loadTasks = async () => {
+      const storedTasks = await StorageService.getJSON<Task[]>(
+        StorageService.STORAGE_KEYS.tasks,
+      );
+      if (!storedTasks || !Array.isArray(storedTasks)) {
+        return;
+      }
+
+      const normalized = storedTasks.filter(item => {
+        return Boolean(item?.id && item?.text && Array.isArray(item?.microSteps));
+      });
+      setTasks(normalized);
+    };
+
+    loadTasks();
+  }, []);
+
+  useEffect(() => {
+    StorageService.setJSON(StorageService.STORAGE_KEYS.tasks, tasks);
+  }, [tasks]);
+
   const addMicroStep = () => {
     if (newStep.trim()) {
       setMicroSteps([...microSteps, newStep.trim()]);
@@ -32,20 +56,20 @@ const FogCutterScreen = () => {
   const addTask = () => {
     if (task.trim() && microSteps.length > 0) {
       const newTask: Task = {
-        id: Date.now().toString(),
+        id: generateId(),
         text: task,
         completed: false,
         microSteps: [...microSteps],
       };
-      setTasks([...tasks, newTask]);
+      setTasks(prevTasks => [...prevTasks, newTask]);
       setTask('');
       setMicroSteps([]);
     }
   };
 
   const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map(t => (t.id === id ? {...t, completed: !t.completed} : t)),
+    setTasks(prevTasks =>
+      prevTasks.map(t => (t.id === id ? {...t, completed: !t.completed} : t)),
     );
   };
 

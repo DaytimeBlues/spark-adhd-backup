@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,10 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import SoundService from '../services/SoundService';
+import StorageService from '../services/StorageService';
+import { MetroButton } from '../components/metro/MetroButton';
+import { MetroPalette, MetroSpacing, MetroTypography } from '../theme/metroTheme';
 
 const IgniteScreen = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -14,12 +18,45 @@ const IgniteScreen = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    SoundService.initBrownNoise();
+
+    const loadState = async () => {
+      const storedState = await StorageService.getJSON<{
+        timeLeft: number;
+        isPlaying: boolean;
+      }>(StorageService.STORAGE_KEYS.igniteState);
+      if (!storedState) {
+        return;
+      }
+
+      if (typeof storedState.timeLeft === 'number') {
+        setTimeLeft(storedState.timeLeft);
+      }
+
+      if (storedState.isPlaying) {
+        setIsPlaying(true);
+        SoundService.playBrownNoise();
+      }
+    };
+
+    loadState();
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
+
+      SoundService.stopBrownNoise();
+      SoundService.releaseBrownNoise();
     };
   }, []);
+
+  useEffect(() => {
+    StorageService.setJSON(StorageService.STORAGE_KEYS.igniteState, {
+      timeLeft,
+      isPlaying,
+    });
+  }, [timeLeft, isPlaying]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -34,6 +71,7 @@ const IgniteScreen = () => {
         if (prev <= 1) {
           setIsRunning(false);
           if (intervalRef.current) clearInterval(intervalRef.current);
+          SoundService.playCompletionSound();
           return 0;
         }
         return prev - 1;
@@ -55,10 +93,19 @@ const IgniteScreen = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
+    SoundService.pauseBrownNoise();
   };
 
   const toggleSound = () => {
-    setIsPlaying(!isPlaying);
+    setIsPlaying(prev => {
+      if (prev) {
+        SoundService.pauseBrownNoise();
+      } else {
+        SoundService.playBrownNoise();
+      }
+
+      return !prev;
+    });
   };
 
   return (
@@ -76,27 +123,36 @@ const IgniteScreen = () => {
 
         <View style={styles.controls}>
           {!isRunning ? (
-            <TouchableOpacity style={styles.startButton} onPress={startTimer}>
-              <Text style={styles.startButtonText}>Start</Text>
-            </TouchableOpacity>
+            <MetroButton
+              title="Start"
+              onPress={startTimer}
+              accentColor={MetroPalette.blue}
+              style={styles.controlBtn}
+            />
           ) : (
-            <TouchableOpacity style={styles.pauseButton} onPress={pauseTimer}>
-              <Text style={styles.pauseButtonText}>Pause</Text>
-            </TouchableOpacity>
+            <MetroButton
+              title="Pause"
+              onPress={pauseTimer}
+              accentColor={MetroPalette.red}
+              style={styles.controlBtn}
+            />
           )}
 
-          <TouchableOpacity style={styles.resetButton} onPress={resetTimer}>
-            <Text style={styles.resetButtonText}>Reset</Text>
-          </TouchableOpacity>
+          <MetroButton
+            title="Reset"
+            onPress={resetTimer}
+            variant="outline"
+            style={styles.controlBtn}
+          />
         </View>
 
-        <TouchableOpacity
-          style={[styles.soundButton, isPlaying && styles.soundButtonActive]}
-          onPress={toggleSound}>
-          <Text style={styles.soundButtonText}>
-            {isPlaying ? '🔊 Brown Noise On' : '🔇 Brown Noise Off'}
-          </Text>
-        </TouchableOpacity>
+        <MetroButton
+          title={isPlaying ? '🔊 Brown Noise On' : '🔇 Brown Noise Off'}
+          onPress={toggleSound}
+          variant={isPlaying ? 'filled' : 'outline'}
+          accentColor={MetroPalette.purple}
+          style={styles.soundButton}
+        />
       </View>
     </SafeAreaView>
   );
@@ -105,94 +161,57 @@ const IgniteScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: MetroPalette.black,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: MetroSpacing.l,
     alignItems: 'center',
     justifyContent: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.display,
+    fontWeight: MetroTypography.weights.light,
+    color: MetroPalette.white,
+    marginBottom: MetroSpacing.unit,
+    letterSpacing: MetroTypography.letterSpacing.display,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 48,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.h3,
+    color: MetroPalette.gray,
+    marginBottom: MetroSpacing.xxl,
   },
   timerContainer: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: MetroSpacing.xxl,
   },
   timer: {
-    fontSize: 72,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: 96,
+    fontWeight: MetroTypography.weights.light,
+    color: MetroPalette.white,
     fontVariant: ['tabular-nums'],
+    letterSpacing: -2,
   },
   status: {
-    fontSize: 18,
-    color: '#6200EA',
-    marginTop: 8,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.h3,
+    color: MetroPalette.blue,
+    marginTop: MetroSpacing.m,
   },
   controls: {
     flexDirection: 'row',
-    marginBottom: 32,
+    marginBottom: MetroSpacing.xl,
+    justifyContent: 'center',
   },
-  startButton: {
-    backgroundColor: '#6200EA',
-    paddingHorizontal: 48,
-    paddingVertical: 16,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  pauseButton: {
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 40,
-    paddingVertical: 16,
-    borderRadius: 30,
-    marginRight: 16,
-  },
-  pauseButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
-  },
-  resetButton: {
-    backgroundColor: '#2D2D44',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderRadius: 30,
-  },
-  resetButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '600',
+  controlBtn: {
+    marginHorizontal: MetroSpacing.s,
+    minWidth: 120,
   },
   soundButton: {
-    backgroundColor: '#2D2D44',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#444',
-  },
-  soundButtonActive: {
-    borderColor: '#6200EA',
-    backgroundColor: '#3D2D64',
-  },
-  soundButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    minWidth: 200,
   },
 });
 

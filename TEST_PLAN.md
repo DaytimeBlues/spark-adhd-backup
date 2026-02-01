@@ -26,6 +26,22 @@
 - **Interaction**: Main action button is displayed and clickable.
   - UI requirement: set `accessibilityLabel="main-action-button"` on the main button in React Native to satisfy the test.
 
+## Manual QA Checklist
+
+### Android Floating Bubble (Overlay)
+- [ ] **Permission Request**: App requests "Display over other apps" if not granted.
+- [ ] **Visibility**: Bubble appears after enabling the Home screen toggle.
+- [ ] **Dragging**: Bubble can be moved freely around the screen.
+- [ ] **Sync**: Task count in bubble matches the app's current Brain Dump count.
+- [ ] **Dismissal**: Bubble disappears when disabled via toggle.
+- [ ] **Foreground Service**: Overlay persists when app is backgrounded.
+
+### Metro Branch Smoke Checks
+- [ ] **Home Screen**: Verify Metro-style tiles and typography.
+- [ ] **Tasks Screen**: Check list styling and interaction animations.
+- [ ] **Focus Screen**: Verify high-contrast timer display and background.
+- [ ] **Navigation**: Ensure tab bar matches Metro aesthetic.
+
 ## Notes
 - Ensure `android.useAndroidX=true` is present in `gradle.properties`.
 - If Firebase/Google Services are added later, include `google-services.json` or CI injection.

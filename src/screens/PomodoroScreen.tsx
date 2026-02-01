@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   SafeAreaView,
 } from 'react-native';
+import SoundService from '../services/SoundService';
+import StorageService from '../services/StorageService';
 
 const PomodoroScreen = () => {
   const [isWorking, setIsWorking] = useState(true);
@@ -15,12 +17,46 @@ const PomodoroScreen = () => {
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    const loadState = async () => {
+      const storedState = await StorageService.getJSON<{
+        isWorking: boolean;
+        timeLeft: number;
+        sessions: number;
+      }>(StorageService.STORAGE_KEYS.pomodoroState);
+
+      if (!storedState) {
+        return;
+      }
+
+      if (typeof storedState.isWorking === 'boolean') {
+        setIsWorking(storedState.isWorking);
+      }
+
+      if (typeof storedState.timeLeft === 'number') {
+        setTimeLeft(storedState.timeLeft);
+      }
+
+      if (typeof storedState.sessions === 'number') {
+        setSessions(storedState.sessions);
+      }
+    };
+
+    loadState();
+
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
   }, []);
+
+  useEffect(() => {
+    StorageService.setJSON(StorageService.STORAGE_KEYS.pomodoroState, {
+      isWorking,
+      timeLeft,
+      sessions,
+    });
+  }, [isWorking, timeLeft, sessions]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -36,9 +72,11 @@ const PomodoroScreen = () => {
           if (isWorking) {
             setSessions(s => s + 1);
             setIsWorking(false);
+            SoundService.playCompletionSound();
             return 300;
           } else {
             setIsWorking(true);
+            SoundService.playNotificationSound();
             return 1500;
           }
         }

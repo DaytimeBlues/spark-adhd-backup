@@ -1,4 +1,12 @@
 import { formatTime, calculateStreak } from "../src/utils/helpers";
+import StorageService from "../src/services/StorageService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+jest.mock("@react-native-async-storage/async-storage", () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+}));
 
 describe("helpers", () => {
   describe("formatTime", () => {
@@ -47,6 +55,32 @@ describe("helpers", () => {
       const threeDaysAgo = new Date();
       threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
       expect(calculateStreak(threeDaysAgo, 10)).toBe(1);
+    });
+  });
+
+  describe("StorageService", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("setJSON stringifies values", async () => {
+      const payload = { count: 2, items: ["a", "b"] };
+      await StorageService.setJSON("test-key", payload);
+
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "test-key",
+        JSON.stringify(payload),
+      );
+    });
+
+    it("getJSON parses values", async () => {
+      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+        JSON.stringify({ ok: true }),
+      );
+
+      const result = await StorageService.getJSON<{ ok: boolean }>("test-key");
+      expect(AsyncStorage.getItem).toHaveBeenCalledWith("test-key");
+      expect(result).toEqual({ ok: true });
     });
   });
 });

@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   theme: 'theme',
   tasks: 'tasks',
   brainDump: 'brainDump',
+  igniteState: 'igniteState',
+  pomodoroState: 'pomodoroState',
 };
 
 const StorageService = {

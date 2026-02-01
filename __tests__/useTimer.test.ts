@@ -63,4 +63,23 @@ describe("useTimer", () => {
     const { result } = renderHook(() => useTimer({ initialTime: 65 }));
     expect(result.current.formattedTime).toBe("01:05");
   });
+
+  it("calls onComplete when timer finishes", async () => {
+    const onComplete = jest.fn();
+    const { result } = renderHook(() =>
+      useTimer({ initialTime: 1, onComplete }),
+    );
+
+    act(() => {
+      result.current.start();
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    await waitFor(() => {
+      expect(onComplete).toHaveBeenCalledTimes(1);
+    });
+  });
 });

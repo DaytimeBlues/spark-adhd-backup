@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -7,35 +7,76 @@ import {
   TouchableOpacity,
   SafeAreaView,
   FlatList,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
+import StorageService from '../services/StorageService';
+import OverlayService from '../services/OverlayService';
+import {generateId} from '../utils/helpers';
+import {MetroButton} from '../components/metro/MetroButton';
+import {MetroPalette, MetroSpacing, MetroTypography} from '../theme/metroTheme';
 
 interface DumpItem {
   id: string;
   text: string;
-  createdAt: Date;
+  createdAt: string;
 }
 
 const BrainDumpScreen = () => {
   const [input, setInput] = useState('');
   const [items, setItems] = useState<DumpItem[]>([]);
 
+  const loadItems = async () => {
+    const storedItems = await StorageService.getJSON<DumpItem[]>(
+      StorageService.STORAGE_KEYS.brainDump,
+    );
+    if (!storedItems || !Array.isArray(storedItems)) {
+      return;
+    }
+
+    const normalized = storedItems.filter(item => {
+      return Boolean(item?.id && item?.text && item?.createdAt);
+    });
+    // Animate initial load
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setItems(normalized);
+  };
+
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      }
+    }
+    loadItems();
+  }, []);
+
+  useEffect(() => {
+    StorageService.setJSON(StorageService.STORAGE_KEYS.brainDump, items);
+    OverlayService.updateCount(items.length);
+  }, [items]);
+
   const addItem = () => {
     if (input.trim()) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       const newItem: DumpItem = {
-        id: Date.now().toString(),
+        id: generateId(),
         text: input.trim(),
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
       };
-      setItems([newItem, ...items]);
+      setItems(prevItems => [newItem, ...prevItems]);
       setInput('');
     }
   };
 
   const deleteItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
   const clearAll = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setItems([]);
   };
 
@@ -58,21 +99,24 @@ const BrainDumpScreen = () => {
           <TextInput
             style={styles.input}
             placeholder="What's on your mind?"
-            placeholderTextColor="#666"
+            placeholderTextColor={MetroPalette.gray}
             value={input}
             onChangeText={setInput}
             onSubmitEditing={addItem}
             multiline
           />
-          <TouchableOpacity style={styles.addButton} onPress={addItem}>
-            <Text style={styles.addButtonText}>Dump</Text>
-          </TouchableOpacity>
+          <MetroButton title="+" onPress={addItem} style={styles.addButton} />
         </View>
 
         {items.length > 0 && (
-          <TouchableOpacity style={styles.clearButton} onPress={clearAll}>
-            <Text style={styles.clearButtonText}>Clear All</Text>
-          </TouchableOpacity>
+          <View style={styles.clearButtonContainer}>
+             <MetroButton
+                title="Clear All"
+                onPress={clearAll}
+                variant="link"
+                accentColor={MetroPalette.red}
+             />
+          </View>
         )}
 
         <FlatList
@@ -94,83 +138,78 @@ const BrainDumpScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1A1A2E',
+    backgroundColor: MetroPalette.black,
   },
   content: {
     flex: 1,
-    padding: 16,
+    padding: MetroSpacing.l,
   },
   title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.display,
+    fontWeight: MetroTypography.weights.light,
+    color: MetroPalette.white,
+    marginBottom: MetroSpacing.unit,
+    letterSpacing: MetroTypography.letterSpacing.display,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#888',
-    marginBottom: 24,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.h3,
+    color: MetroPalette.gray,
+    marginBottom: MetroSpacing.xl,
   },
   inputContainer: {
     flexDirection: 'row',
-    marginBottom: 16,
+    marginBottom: MetroSpacing.m,
+    alignItems: 'stretch',
   },
   input: {
     flex: 1,
-    backgroundColor: '#2D2D44',
-    borderRadius: 12,
-    padding: 16,
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginRight: 12,
+    backgroundColor: MetroPalette.darkGray,
+    borderRadius: 0,
+    padding: MetroSpacing.m,
+    color: MetroPalette.white,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.body,
+    marginRight: MetroSpacing.s,
     minHeight: 50,
   },
   addButton: {
-    backgroundColor: '#6200EA',
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    justifyContent: 'center',
+    minWidth: 60,
   },
-  addButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  clearButton: {
-    alignSelf: 'flex-end',
-    marginBottom: 16,
-  },
-  clearButtonText: {
-    color: '#FF6B6B',
-    fontSize: 14,
+  clearButtonContainer: {
+    alignItems: 'flex-end',
+    marginBottom: MetroSpacing.m,
   },
   listContent: {
     flexGrow: 1,
   },
   item: {
-    backgroundColor: '#2D2D44',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: MetroPalette.darkGray,
+    borderRadius: 0,
+    padding: MetroSpacing.m,
+    marginBottom: MetroSpacing.s,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   itemText: {
     flex: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: MetroPalette.white,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.body,
   },
   deleteText: {
-    color: '#FF6B6B',
-    fontSize: 18,
-    marginLeft: 12,
+    color: MetroPalette.gray,
+    fontSize: MetroTypography.sizes.h3,
+    marginLeft: MetroSpacing.m,
   },
   emptyText: {
-    color: '#666',
-    fontSize: 16,
+    color: MetroPalette.gray,
+    fontFamily: MetroTypography.fontFamily,
+    fontSize: MetroTypography.sizes.h3,
     textAlign: 'center',
-    marginTop: 48,
+    marginTop: MetroSpacing.xxl,
   },
 });
 

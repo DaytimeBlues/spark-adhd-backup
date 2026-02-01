@@ -111,63 +111,16 @@ This is not a general productivity app. It is a **friction-reducer** and **cogni
 
 ---
 
-### ✅ Feature D: Anchor (Breathing)
+### ✅ Feature I: Android Overlay (Floating Bubble)
 
-**Description**: Guided breathing exercises for emotional regulation.
+**Description**: Persistent floating UI showing the current task count.
 
-**Technical Logic**:
+**Architecture**:
+- **Native Service (`OverlayService.java`)**: Manages the life cycle of the system window overlay.
+- **Native Module (`OverlayModule.java`)**: Bridge between JS and Java to start/stop/update the overlay.
+- **JS Wrapper (`OverlayService.ts`)**: High-level API for React components to interact with the native overlay.
 
-- Presets: 4-7-8, Box Breathing, Energize
-- Animation: Circle scale animation synced to breath phases
-- Uses `react-native-reanimated` for smooth cross-platform animation
-
----
-
-### ✅ Feature E: Check-In
-
-**Description**: Mood and energy tracking with personalized feedback.
-
-**Technical Logic**:
-
-- Input: Mood (1-5 scale), Energy (1-5 scale), optional notes
-- Output: Recommendation based on state (e.g., "Low energy? Try Anchor.")
-- Persist to `AsyncStorage` for pattern tracking over time
-
----
-
-### ✅ Feature F: Brain Dump
-
-**Description**: Quick capture for racing thoughts.
-
-**Technical Logic**:
-
-- Simple text input → saved to `STORAGE_KEYS.brainDump` (array of strings with timestamps)
-- **Future**: "Send to Tasks" button → calls Google Tasks API to create task
-
----
-
-### ✅ Feature G: Crisis Mode
-
-**Description**: Safety resources and coping strategies for acute distress.
-
-**Technical Logic**:
-
-- Static content: grounding techniques, emergency contacts, hotline numbers
-- No persistence needed—purely informational
-
----
-
-### 🔲 Feature H: Google Integration (Next Phase)
-
-**Description**: Sync Brain Dump to Google Tasks, create Calendar events.
-
-**Technical Logic**:
-
-- OAuth via `GoogleAuthService` (already configured with correct scopes)
-- API Endpoints:
-  - `POST https://tasks.googleapis.com/tasks/v1/lists/@default/tasks` — create task
-  - `POST https://www.googleapis.com/calendar/v3/calendars/primary/events` — create event
-- Token management: `GoogleSignin.getTokens()` → `accessToken` for API calls
+**Permissions**: Requires `SYSTEM_ALERT_WINDOW` and `FOREGROUND_SERVICE`.
 
 ---
 

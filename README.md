@@ -12,6 +12,7 @@ React Native port of the Spark PWA for ADHD behavioral activation.
 - **Brain Dump** - Quick capture for racing thoughts
 - **Calendar** - Simple monthly view
 - **Crisis Mode** - Safety resources and coping strategies
+- **Floating Bubble (Android)** - Task count overlay that floats over other apps
 
 ## Project Structure
 
@@ -55,6 +56,19 @@ cd android && ./gradlew clean
 npm run android
 ```
 
+### Android Floating Bubble (Overlay)
+
+The Android app includes a floating bubble overlay that shows your current task count.
+
+**Permissions Required:**
+- `SYSTEM_ALERT_WINDOW`: "Display over other apps"
+- `FOREGROUND_SERVICE`: For background timer persistence
+
+**How to enable:**
+1. Open App Settings > Advanced > Display over other apps.
+2. Toggle "Allow display over other apps" for Spark ADHD.
+3. Enable the "Floating Bubble" toggle on the Home screen to show the overlay.
+
 ### Running Tests
 
 ```bash
@@ -83,6 +97,7 @@ npm run build:release
 - Detox for E2E testing
 - AsyncStorage for persistence
 - Google Sign-In for OAuth
+- Metro UI: Visual variant for Home/Tasks/Focus screens (available on Metro branch)
 
 ## GitHub
 
