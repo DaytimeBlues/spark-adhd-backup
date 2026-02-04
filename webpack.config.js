@@ -11,7 +11,7 @@ module.exports = (env, argv) => {
         output: {
             path: path.resolve(__dirname, 'dist'),
             filename: 'bundle.[contenthash].js',
-            publicPath: isProduction ? '/spark-adhd-backup/' : '/',
+            publicPath: isProduction ? '' : '/',
         },
         resolve: {
             extensions: ['.web.tsx', '.web.ts', '.web.js', '.tsx', '.ts', '.js'],
