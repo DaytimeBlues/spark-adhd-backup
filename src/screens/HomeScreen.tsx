@@ -36,12 +36,12 @@ const HomeScreen = ({ navigation }: any) => {
 
   const modes = useMemo(
     () => [
-      { id: 'ignite', name: 'Ignite', icon: '🔥', desc: '5-min focus timer', accent: Tokens.colors.brand[500] },
-      { id: 'fogcutter', name: 'Fog Cutter', icon: '💨', desc: 'Break tasks down', accent: Tokens.colors.brand[400] },
-      { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', desc: 'Classic timer', accent: Tokens.colors.danger[500] },
-      { id: 'anchor', name: 'Anchor', icon: '⚓', desc: 'Breathing exercises', accent: Tokens.colors.success[500] },
-      { id: 'checkin', name: 'Check In', icon: '📊', desc: 'Mood & energy', accent: Tokens.colors.warning[500] },
-      { id: 'crisis', name: 'Crisis Mode', icon: '🆘', desc: 'Safety resources', accent: Tokens.colors.danger[800] },
+      { id: 'ignite', name: 'Ignite', icon: '🔥', desc: '5-min focus timer', accent: Tokens.colors.indigo.primary },
+      { id: 'fogcutter', name: 'Fog Cutter', icon: '💨', desc: 'Break tasks down', accent: Tokens.colors.info.main },
+      { id: 'pomodoro', name: 'Pomodoro', icon: '🍅', desc: 'Classic timer', accent: Tokens.colors.error.main },
+      { id: 'anchor', name: 'Anchor', icon: '⚓', desc: 'Breathing exercises', accent: Tokens.colors.success.main },
+      { id: 'checkin', name: 'Check In', icon: '📊', desc: 'Mood & energy', accent: Tokens.colors.warning.main },
+      { id: 'crisis', name: 'Crisis Mode', icon: '🆘', desc: 'Safety resources', accent: Tokens.colors.error.main },
     ],
     [],
   );
