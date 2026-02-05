@@ -1,3 +1,4 @@
+import React, { useEffect, useMemo, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,9 +7,10 @@ import {
   SafeAreaView,
   Switch,
   Platform,
+  Animated,
+  Easing,
   useWindowDimensions,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OverlayService from '../services/OverlayService';
 import { Tokens } from '../theme/tokens';
@@ -16,8 +18,8 @@ import ModeCard, { type ModeCardMode } from '../components/home/ModeCard';
 
 // -- Constants --
 const ANIMATION_DURATION = 500;
-const ANIMATION_STAGGER = 60;
-const ENTRANCE_OFFSET_Y = Tokens.spacing[48];
+const ANIMATION_STAGGER = 80;
+const ENTRANCE_OFFSET_Y = 30;
 
 // -- Types --
 type Mode = { id: string } & ModeCardMode;
@@ -44,10 +46,33 @@ const HomeScreen = ({ navigation }: any) => {
     [],
   );
 
-  // Screen is now managed via Reanimated entrance animations
+  // Animation refs
+  const fadeAnims = useRef(modes.map(() => new Animated.Value(0))).current;
+  const slideAnims = useRef(modes.map(() => new Animated.Value(ENTRANCE_OFFSET_Y))).current;
+
   useEffect(() => {
     loadStreak();
     checkOverlayPermission();
+
+    // Trigger entrance animation
+    const animations = modes.map((_, i) => {
+      return Animated.parallel([
+        Animated.timing(fadeAnims[i], {
+          toValue: 1,
+          duration: ANIMATION_DURATION,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.cubic),
+        }),
+        Animated.timing(slideAnims[i], {
+          toValue: 0,
+          duration: ANIMATION_DURATION,
+          useNativeDriver: true,
+          easing: Easing.out(Easing.back(1.2)),
+        }),
+      ]);
+    });
+
+    Animated.stagger(ANIMATION_STAGGER, animations).start();
   }, []);
 
   const checkOverlayPermission = async () => {
@@ -140,8 +165,11 @@ const HomeScreen = ({ navigation }: any) => {
             {modes.map((mode, index) => (
               <Animated.View
                 key={mode.id}
-                entering={FadeInDown.delay(index * 100).springify().damping(15)}
-                style={{ width: cardWidth }}
+                style={{
+                  width: cardWidth,
+                  opacity: fadeAnims.current[index],
+                  transform: [{ translateY: slideAnims.current[index] }],
+                }}
               >
                 <ModeCard
                   mode={mode}

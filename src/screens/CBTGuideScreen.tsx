@@ -9,7 +9,6 @@ import {
     Linking,
     Platform,
 } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Tokens } from '../theme/tokens';
 
@@ -107,9 +106,8 @@ const CBTGuideScreen = ({ navigation }: any) => {
                     </View>
 
                     {categories.map((category, index) => (
-                        <Animated.View
+                        <View
                             key={category.id}
-                            entering={FadeInDown.delay(index * 120).springify()}
                             style={styles.categoryCard}
                         >
                             <View style={styles.categoryHeader}>
@@ -136,7 +134,7 @@ const CBTGuideScreen = ({ navigation }: any) => {
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        </Animated.View>
+                        </View>
                     ))}
                 </View>
             </ScrollView>
