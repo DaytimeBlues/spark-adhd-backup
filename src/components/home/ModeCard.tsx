@@ -24,12 +24,25 @@ const ICON_SIZE = 28;
 
 export default function ModeCard({ mode, onPress, style, animatedStyle, testID }: ModeCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isFocused, setIsFocused] = useState(false);
 
   const hoverStyle =
-    Platform.OS === 'web' && isHovered
+    Platform.OS === 'web' && (isHovered || isFocused)
       ? {
         borderColor: mode.accent,
-        backgroundColor: Tokens.colors.neutral.dark,
+        backgroundColor: `${Tokens.colors.neutral.dark}E6`, // 90% opacity for glass effect
+        boxShadow: `0 0 25px ${mode.accent}25`, // Subtle colored glow
+        transform: [{ scale: 1.02 }],
+      }
+      : {};
+
+  const focusStyle =
+    Platform.OS === 'web' && isFocused
+      ? {
+        outlineColor: mode.accent,
+        outlineStyle: 'solid',
+        outlineWidth: 2,
+        outlineOffset: 4,
       }
       : {};
 
@@ -38,21 +51,28 @@ export default function ModeCard({ mode, onPress, style, animatedStyle, testID }
       <Pressable
         testID={testID}
         accessibilityLabel={testID}
+        accessibilityRole="button"
         onPress={onPress}
         onHoverIn={() => setIsHovered(true)}
         onHoverOut={() => setIsHovered(false)}
+        onFocus={() => setIsFocused(true)}
+        onBlur={() => setIsFocused(false)}
         style={({ pressed }) => [
           styles.card,
-          Platform.OS === 'web' && { cursor: 'pointer' },
+          Platform.OS === 'web' && {
+            cursor: 'pointer',
+            transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          },
           pressed && { transform: [{ scale: 0.98 }] },
           hoverStyle,
+          focusStyle as any,
         ]}
       >
         <View style={styles.cardHeader}>
-          <View style={[styles.iconContainer, { backgroundColor: `${mode.accent}15` }]}>
+          <View style={[styles.iconContainer, { backgroundColor: `${mode.accent}20` }]}>
             <Icon name={mode.icon} size={ICON_SIZE} color={mode.accent} />
           </View>
-          <View style={[styles.accentDot, { backgroundColor: mode.accent }]} />
+          <View style={[styles.accentDot, { backgroundColor: mode.accent, boxShadow: `0 0 10px ${mode.accent}` }]} />
         </View>
 
         <View style={styles.cardContent}>
@@ -75,19 +95,21 @@ const styles = StyleSheet.create({
     backgroundColor: Tokens.colors.neutral.darker,
     minHeight: CARD_MIN_HEIGHT,
     justifyContent: 'space-between',
-    transition: 'all 0.15s ease',
-  } as any,
+    overflow: 'hidden',
+  },
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
   },
   iconContainer: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: Tokens.radii.md,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   accentDot: {
     width: DOT_SIZE,

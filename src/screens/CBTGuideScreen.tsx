@@ -98,6 +98,7 @@ const CBTGuideScreen = ({ navigation }: any) => {
                         <TouchableOpacity
                             style={styles.sourceLink}
                             onPress={() => openSource('https://pubmed.ncbi.nlm.nih.gov/')}
+                            activeOpacity={0.7}
                         >
                             <Text style={styles.sourceLinkText}>View Research Sources →</Text>
                         </TouchableOpacity>
@@ -119,10 +120,13 @@ const CBTGuideScreen = ({ navigation }: any) => {
                                         key={feature.route}
                                         style={styles.featureButton}
                                         onPress={() => handleFeaturePress(feature.route)}
+                                        activeOpacity={0.6}
                                     >
-                                        <Icon name={feature.icon} size={20} color={Tokens.colors.indigo.primary} />
+                                        <View style={styles.featureIconContainer}>
+                                            <Icon name={feature.icon} size={18} color={Tokens.colors.indigo.primary} />
+                                        </View>
                                         <Text style={styles.featureButtonText}>{feature.name}</Text>
-                                        <Icon name="chevron-right" size={16} color={Tokens.colors.text.tertiary} />
+                                        <Icon name="chevron-right" size={14} color={Tokens.colors.text.tertiary} />
                                     </TouchableOpacity>
                                 ))}
                             </View>
@@ -208,6 +212,11 @@ const styles = StyleSheet.create({
         marginBottom: Tokens.spacing[4],
         borderWidth: 1,
         borderColor: Tokens.colors.neutral.borderSubtle,
+        ...Platform.select({
+            web: {
+                transition: 'transform 0.2s ease, border-color 0.2s ease',
+            },
+        }),
     },
     categoryHeader: {
         flexDirection: 'row',
@@ -232,6 +241,7 @@ const styles = StyleSheet.create({
         fontSize: Tokens.type.xs,
         color: Tokens.colors.indigo.primary,
         marginTop: 2,
+        fontWeight: '500',
     },
     categoryDescription: {
         fontFamily: 'Inter',
@@ -253,6 +263,22 @@ const styles = StyleSheet.create({
         paddingHorizontal: Tokens.spacing[3],
         borderRadius: Tokens.radii.md,
         gap: Tokens.spacing[2],
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.05)',
+        ...Platform.select({
+            web: {
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+            },
+        }),
+    },
+    featureIconContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: Tokens.radii.sm,
+        backgroundColor: `${Tokens.colors.indigo.primary}15`,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     featureButtonText: {
         fontFamily: 'Inter',

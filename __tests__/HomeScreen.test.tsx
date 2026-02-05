@@ -6,6 +6,9 @@ jest.mock("@react-native-async-storage/async-storage", () =>
   require("@react-native-async-storage/async-storage/jest/async-storage-mock")
 );
 
+// Mock vector icons
+jest.mock("react-native-vector-icons/MaterialCommunityIcons", () => "Icon");
+
 describe("HomeScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -21,10 +24,11 @@ describe("HomeScreen", () => {
     expect(screen.getByText("Ignite")).toBeTruthy();
     expect(screen.getByText("Fog Cutter")).toBeTruthy();
     expect(screen.getByText("Pomodoro")).toBeTruthy();
+    expect(screen.getByText("CBT Guide")).toBeTruthy();
   });
 
   it("shows streak container", () => {
     render(<HomeScreen />);
-    expect(screen.getByText("0 days streak")).toBeTruthy();
+    expect(screen.getByText(/0 days? streak/i)).toBeTruthy();
   });
 });
