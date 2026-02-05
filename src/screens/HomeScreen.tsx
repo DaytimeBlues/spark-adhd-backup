@@ -1,4 +1,3 @@
-import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +6,9 @@ import {
   SafeAreaView,
   Switch,
   Platform,
-  Animated,
-  Easing,
   useWindowDimensions,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OverlayService from '../services/OverlayService';
 import { Tokens } from '../theme/tokens';
@@ -46,32 +44,10 @@ const HomeScreen = ({ navigation }: any) => {
     [],
   );
 
-  const fadeAnims = React.useRef(modes.map(() => new Animated.Value(0))).current;
-  const slideAnims = React.useRef(modes.map(() => new Animated.Value(ENTRANCE_OFFSET_Y))).current;
-
+  // Screen is now managed via Reanimated entrance animations
   useEffect(() => {
     loadStreak();
     checkOverlayPermission();
-
-    // Trigger entrance animation
-    const animations = modes.map((_, i) => {
-      return Animated.parallel([
-        Animated.timing(fadeAnims[i], {
-          toValue: 1,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.cubic),
-        }),
-        Animated.timing(slideAnims[i], {
-          toValue: 0,
-          duration: ANIMATION_DURATION,
-          useNativeDriver: true,
-          easing: Easing.out(Easing.back(1.5)), // Slightly bouncier
-        }),
-      ]);
-    });
-
-    Animated.stagger(ANIMATION_STAGGER, animations).start();
   }, []);
 
   const checkOverlayPermission = async () => {
@@ -142,11 +118,11 @@ const HomeScreen = ({ navigation }: any) => {
             </View>
           </View>
 
-          {Platform.OS === 'android' && (
-            <View style={styles.overlayCard} testID="home-overlay-card" accessibilityLabel="home-overlay-card">
-              <View style={styles.overlayTextContainer}>
-                <Text style={styles.overlayTitle}>Floating Bubble</Text>
-                <Text style={styles.overlayDesc}>Keep tasks visible over other apps</Text>
+          {isOverlayEnabled !== null && Platform.OS === 'android' && (
+            <View style={styles.overlayToggleSection}>
+              <View>
+                <Text style={styles.overlayToggleTitle}>Focus Overlay</Text>
+                <Text style={styles.overlayToggleDesc}>Block apps during deep work</Text>
               </View>
               <Switch
                 testID="home-overlay-toggle"
@@ -162,17 +138,17 @@ const HomeScreen = ({ navigation }: any) => {
 
           <View style={styles.modesGrid}>
             {modes.map((mode, index) => (
-              <ModeCard
+              <Animated.View
                 key={mode.id}
-                mode={mode}
-                onPress={() => handlePress(mode.id)}
-                testID={`mode-${mode.id}`}
+                entering={FadeInDown.delay(index * 100).springify().damping(15)}
                 style={{ width: cardWidth }}
-                animatedStyle={{
-                  opacity: fadeAnims[index],
-                  transform: [{ translateY: slideAnims[index] }]
-                }}
-              />
+              >
+                <ModeCard
+                  mode={mode}
+                  onPress={() => handlePress(mode.id)}
+                  testID={`mode-${mode.id}`}
+                />
+              </Animated.View>
             ))}
           </View>
 
@@ -205,16 +181,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Inter',
-    fontSize: 32,
+    fontSize: Tokens.type.size.xl2 || 32,
     fontWeight: '700',
     color: Tokens.colors.text.primary,
-    letterSpacing: -0.5,
+    letterSpacing: -0.5, // Tighter for headers
   },
   subtitle: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.base,
     color: Tokens.colors.text.secondary,
     marginTop: Tokens.spacing[1],
+    letterSpacing: 0.2,
   },
   streakBadge: {
     flexDirection: 'row',

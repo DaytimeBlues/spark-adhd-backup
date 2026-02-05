@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { Animated, Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Tokens } from '../../theme/tokens';
 
@@ -28,12 +27,12 @@ export default function ModeCard({ mode, onPress, style, animatedStyle, testID }
 
   const hoverStyle =
     Platform.OS === 'web' && (isHovered || isFocused)
-      ? {
+      ? ({
         borderColor: mode.accent,
         backgroundColor: `${Tokens.colors.neutral.dark}E6`, // 90% opacity for glass effect
         boxShadow: `0 0 25px ${mode.accent}25`, // Subtle colored glow
         transform: [{ scale: 1.02 }],
-      }
+      } as any)
       : {};
 
   const focusStyle =
@@ -72,7 +71,7 @@ export default function ModeCard({ mode, onPress, style, animatedStyle, testID }
           <View style={[styles.iconContainer, { backgroundColor: `${mode.accent}20` }]}>
             <Icon name={mode.icon} size={ICON_SIZE} color={mode.accent} />
           </View>
-          <View style={[styles.accentDot, { backgroundColor: mode.accent, boxShadow: `0 0 10px ${mode.accent}` }]} />
+          <View style={[styles.accentDot, { backgroundColor: mode.accent, boxShadow: `0 0 10px ${mode.accent}` } as any]} />
         </View>
 
         <View style={styles.cardContent}>
@@ -125,11 +124,13 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Tokens.colors.text.primary,
     marginBottom: Tokens.spacing[1],
+    letterSpacing: -0.5,
   },
   cardDesc: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.xs,
     color: Tokens.colors.text.secondary,
     lineHeight: 18,
+    letterSpacing: 0.1,
   },
 });

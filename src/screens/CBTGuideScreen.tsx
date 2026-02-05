@@ -7,7 +7,9 @@ import {
     SafeAreaView,
     TouchableOpacity,
     Linking,
+    Platform,
 } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Tokens } from '../theme/tokens';
 
@@ -104,8 +106,12 @@ const CBTGuideScreen = ({ navigation }: any) => {
                         </TouchableOpacity>
                     </View>
 
-                    {categories.map((category) => (
-                        <View key={category.id} style={styles.categoryCard}>
+                    {categories.map((category, index) => (
+                        <Animated.View
+                            key={category.id}
+                            entering={FadeInDown.delay(index * 120).springify()}
+                            style={styles.categoryCard}
+                        >
                             <View style={styles.categoryHeader}>
                                 <Text style={styles.categoryEmoji}>{category.emoji}</Text>
                                 <View style={styles.categoryTitleContainer}>
@@ -130,7 +136,7 @@ const CBTGuideScreen = ({ navigation }: any) => {
                                     </TouchableOpacity>
                                 ))}
                             </View>
-                        </View>
+                        </Animated.View>
                     ))}
                 </View>
             </ScrollView>
@@ -162,18 +168,19 @@ const styles = StyleSheet.create({
         marginRight: Tokens.spacing[4],
         padding: Tokens.spacing[2],
     },
-    title: {
+    headerTitle: {
         fontFamily: 'Inter',
-        fontSize: 28,
+        fontSize: Tokens.type.xl || 24,
         fontWeight: '700',
         color: Tokens.colors.text.primary,
-        letterSpacing: -0.5,
+        letterSpacing: -0.6,
     },
-    subtitle: {
+    headerSubtitle: {
         fontFamily: 'Inter',
         fontSize: Tokens.type.base,
         color: Tokens.colors.text.secondary,
-        marginTop: Tokens.spacing[1],
+        marginTop: 4,
+        letterSpacing: 0.1,
     },
     introCard: {
         backgroundColor: Tokens.colors.neutral.darker,
@@ -235,6 +242,7 @@ const styles = StyleSheet.create({
         fontSize: Tokens.type.base,
         fontWeight: '600',
         color: Tokens.colors.text.primary,
+        letterSpacing: -0.4,
     },
     categoryPillar: {
         fontFamily: 'Inter',
