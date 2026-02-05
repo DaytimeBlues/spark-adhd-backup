@@ -167,8 +167,8 @@ const HomeScreen = ({ navigation }: any) => {
                 key={mode.id}
                 style={{
                   width: cardWidth,
-                  opacity: fadeAnims.current[index],
-                  transform: [{ translateY: slideAnims.current[index] }],
+                  opacity: fadeAnims[index],
+                  transform: [{ translateY: slideAnims[index] }],
                 }}
               >
                 <ModeCard

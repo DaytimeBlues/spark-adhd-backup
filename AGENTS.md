@@ -1,42 +1,69 @@
-# Project Standards
+# PROJECT KNOWLEDGE BASE
 
-## 🧠 Design Brain: Aesthetic & UX Rules
+**Generated:** 2026-02-05
+**Commit:** 0534d0c
+**Branch:** master
 
-*Stop guessing. Follow these rules for all UI changes.*
+## OVERVIEW
+React Native 0.74 + TypeScript app with React Native Web (webpack) and Android native module support.
 
-### 1. Aesthetic Principles (Material 3 + Glassmorphism)
+## STRUCTURE
+```
+spark-adhd-backup/
+├── android/         # Android native project
+├── src/             # App screens, components, services, theme
+├── __tests__/       # Jest unit/component tests + Detox tests
+├── e2e/             # Playwright web tests
+├── docs/            # Design rules + PRD
+├── App.tsx          # Root App component (shared native/web)
+├── index.js         # Native entry
+└── index.web.js     # Web entry (webpack)
+```
 
-- **Visual Style**: "Premium Calm". Use soft gradients, translucent backgrounds, and vibrant accent colors.
-- **Glassmorphism**: Use `backdrop-filter: blur(12px)` and `rgba(255, 255, 255, 0.05)` for cards and overlays.
-- **Borders**: Subtle 1px borders `rgba(255, 255, 255, 0.1)` to define edges without harsh lines.
-- **Shadows**: Soft, multi-layered shadows for depth. Avoid harsh black shadows.
-- **Typography**:
-  - Headings: Bold, Tracking Tight (-0.5px).
-  - Body: Readable, airy line-height (1.5).
-  - Use `AppText` variants consistently.
+## WHERE TO LOOK
+| Task | Location | Notes |
+|------|----------|-------|
+| Home UI | `src/screens/HomeScreen.tsx` | Mode cards + streak + overlay toggle |
+| Navigation | `src/navigation/AppNavigator.tsx` | Stack + bottom tabs |
+| Services | `src/services/` | Storage, Sound, Overlay wrappers |
+| Theme tokens | `src/theme/tokens.ts` | Canonical styling tokens |
+| Web build | `webpack.config.js` | Entry `index.web.js` |
+| Android build | `android/app/build.gradle` | SDK, signing, deps |
+| E2E web tests | `e2e/` | Playwright spec files |
+| Unit tests | `__tests__/` | Jest + React Native Testing Library |
 
-### 2. Interaction Design (Fitts's Law)
+## CODE MAP
+LSP unavailable in this environment.
 
-- **Touch Targets**: Minimum 44x44dp for all interactive elements.
-- **Placement**: Primary actions (FABs, Confirm buttons) must be within easy thumb reach (bottom right or bottom center).
-- **Feedback**: All interactions must have visual feedback (scale down on press, ripple, or color shift).
+## CONVENTIONS
+- TypeScript strict mode; path alias `@/*` -> `src/*` via `tsconfig.json`.
+- UI styling must use `Tokens` values (`src/theme/tokens.ts`).
+- Jest tests live under `__tests__/` (testMatch enforces this).
+- Web entry uses `index.web.js` + webpack; native entry uses `index.js`.
 
-### 3. Layout & Responsiveness
+## ANTI-PATTERNS (THIS PROJECT)
+- No ad-hoc spacing/typography/colors; use `Tokens` only.
+- No magic numbers in UI styles; use tokens or named constants.
+- Do not comment out old code; delete dead code.
+- Use pointer events; do not rely on legacy touch events.
 
-- **Grid System**: Use an 8pt grid. Spacing should be multiples of 8 (8, 16, 24, 32).
-- **Web Adaptation**: On large screens (>768px), Grid layouts should expand to 3 or 4 columns. Max-width containers (1200px) to prevent distinct "mobile stretched" look.
+## UNIQUE STYLES
+- Material 3 + glassmorphism aesthetic; 8pt grid.
+- Touch targets >= 44px (prefer 48px on touch-heavy surfaces).
+- Web responsive grid expands beyond 768px widths.
 
-### 4. Component Rules
+## COMMANDS
+```bash
+npm run android
+npm run web
+npm test
+npm run e2e
+npm run lint
+npm run build:release
+```
 
-- **Buttons**: Rounded pills (`borderRadius: 100`) for primary actions. Rounded corners (`8px` to `16px`) for cards.
-- **Icons**: Use `MaterialCommunityIcons`. Ensure consistent stroke width and visual weight.
-- **Colors**:
-  - Background: Deep Dark (`#1a1a2e` - existing).
-  - Surface: Translucent Dark.
-  - Primary: Vibrant Purple/Blue (`#A06EE1`).
-  - Accents: Use the "Spark" palette (Fire Red, Teal, Orange) for semantic meaning.
-
-### 5. Engineering Standards
-
-- **Refactoring**: When "beautifying", don't just change styles. Refactor into smaller, focused components if file grows > 200 lines.
-- **React Native Web**: Always verify `Platform.OS === 'web'` specific styles (e.g., `cursor: pointer`, `backdropFilter`).
+## NOTES
+- Android overlay uses SYSTEM_ALERT_WINDOW and foreground service permissions.
+- Release signing uses env vars in `android/app/build.gradle`.
+- Playwright tests rely on stable `testID` selectors in RN web.
+- Design rules are detailed in `docs/DESIGN_RULES.md`.
