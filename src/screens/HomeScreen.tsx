@@ -144,10 +144,10 @@ const HomeScreen = ({ navigation }: any) => {
           </View>
 
           {isOverlayEnabled !== null && Platform.OS === 'android' && (
-            <View style={styles.overlayToggleSection}>
+            <View style={styles.overlayCard}>
               <View>
-                <Text style={styles.overlayToggleTitle}>Focus Overlay</Text>
-                <Text style={styles.overlayToggleDesc}>Block apps during deep work</Text>
+                <Text style={styles.overlayTitle}>Focus Overlay</Text>
+                <Text style={styles.overlayDesc}>Block apps during deep work</Text>
               </View>
               <Switch
                 testID="home-overlay-toggle"
@@ -209,7 +209,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'Inter',
-    fontSize: Tokens.type.size.xl2 || 32,
+    fontSize: Tokens.type.h1,
     fontWeight: '700',
     color: Tokens.colors.text.primary,
     letterSpacing: -0.5, // Tighter for headers

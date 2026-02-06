@@ -29,7 +29,7 @@ test.describe('Home Screen', () => {
         await expect(page.getByTestId('mode-pomodoro')).toBeVisible();
         await expect(page.getByTestId('mode-anchor')).toBeVisible();
         await expect(page.getByTestId('mode-checkin')).toBeVisible();
-        await expect(page.getByTestId('mode-crisis')).toBeVisible();
+        await expect(page.getByTestId('mode-cbtguide')).toBeVisible();
     });
 
     test('should display bottom tab navigation', async ({ page }) => {
