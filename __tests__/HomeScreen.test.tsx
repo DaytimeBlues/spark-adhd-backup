@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import React from "react";
 import HomeScreen from "../src/screens/HomeScreen";
 
@@ -9,18 +9,34 @@ jest.mock("@react-native-async-storage/async-storage", () =>
 // Mock vector icons
 jest.mock("react-native-vector-icons/MaterialCommunityIcons", () => "Icon");
 
+jest.mock("../src/services/OverlayService", () => ({
+  __esModule: true,
+  default: {
+    canDrawOverlays: jest.fn().mockResolvedValue(false),
+    requestOverlayPermission: jest.fn().mockResolvedValue(false),
+    startOverlay: jest.fn(),
+    stopOverlay: jest.fn(),
+    updateCount: jest.fn(),
+  },
+}));
+
+const mockNavigation = {
+  navigate: jest.fn(),
+};
+
+
 describe("HomeScreen", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders correctly", () => {
-    render(<HomeScreen />);
+    render(<HomeScreen navigation={mockNavigation} />);
     expect(screen.getByText("Spark")).toBeTruthy();
   });
 
   it("displays mode cards", () => {
-    render(<HomeScreen />);
+    render(<HomeScreen navigation={mockNavigation} />);
     expect(screen.getByText("Ignite")).toBeTruthy();
     expect(screen.getByText("Fog Cutter")).toBeTruthy();
     expect(screen.getByText("Pomodoro")).toBeTruthy();
@@ -28,7 +44,7 @@ describe("HomeScreen", () => {
   });
 
   it("shows streak container", () => {
-    render(<HomeScreen />);
+    render(<HomeScreen navigation={mockNavigation} />);
     expect(screen.getByText(/0 days? streak/i)).toBeTruthy();
   });
 });
