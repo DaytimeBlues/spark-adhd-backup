@@ -31,14 +31,18 @@ const AnchorScreen = () => {
       intervalRef.current = setInterval(() => {
         setCount(prev => {
           if (prev <= 1) {
-            const phases: Record<string, string> = {
+            const phases: Record<
+              typeof phase,
+              'inhale' | 'hold' | 'exhale' | 'wait'
+            > = {
               inhale: p.hold > 0 ? 'hold' : 'exhale',
               hold: 'exhale',
               exhale: p.wait > 0 ? 'wait' : 'inhale',
               wait: 'inhale',
             };
-            setPhase(phases[phase] as any);
-            return p[phases[phase] as keyof typeof p] || p.inhale;
+            const nextPhase = phases[phase];
+            setPhase(nextPhase);
+            return p[nextPhase] || p.inhale;
           }
           return prev - 1;
         });
@@ -255,4 +259,3 @@ const styles = StyleSheet.create({
 });
 
 export default AnchorScreen;
-

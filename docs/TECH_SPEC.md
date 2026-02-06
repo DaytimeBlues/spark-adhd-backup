@@ -216,37 +216,6 @@ interface PomodoroState extends TimerState {
 | `StorageService.setJSON<T>(key, value)` | Stringify and set JSON |
 | `StorageService.remove(key)` | Delete key |
 
-### Google API (via `GoogleAuthService` + fetch)
-
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `GoogleAuthService.signIn()` | — | OAuth flow, returns user info |
-| `GoogleAuthService.getTokens()` | — | Get access token for API calls |
-| `POST /tasks/v1/lists/@default/tasks` | Google Tasks | Create task from Brain Dump |
-| `POST /calendar/v3/calendars/primary/events` | Google Calendar | Create event |
-
-**API Call Pattern** (future implementation):
-
-```typescript
-async function createGoogleTask(text: string): Promise<boolean> {
-  const tokens = await GoogleAuthService.getTokens();
-  if (!tokens?.accessToken) return false;
-
-  const response = await fetch(
-    'https://tasks.googleapis.com/tasks/v1/lists/@default/tasks',
-    {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${tokens.accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ title: text }),
-    }
-  );
-  return response.ok;
-}
-```
-
 ---
 
 ## VI. Component Architecture (Frontend)

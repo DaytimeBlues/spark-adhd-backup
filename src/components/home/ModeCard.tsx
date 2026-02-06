@@ -1,4 +1,5 @@
-import { Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import React, { useState } from 'react';
+import { Animated, Platform, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Tokens } from '../../theme/tokens';
 
