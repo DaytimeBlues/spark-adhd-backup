@@ -1,10 +1,16 @@
-import { act, render, screen } from "@testing-library/react-native";
+import { render, screen } from "@testing-library/react-native";
 import React from "react";
 import HomeScreen from "../src/screens/HomeScreen";
 
-jest.mock("@react-native-async-storage/async-storage", () =>
-  require("@react-native-async-storage/async-storage/jest/async-storage-mock")
-);
+jest.mock("../src/services/StorageService", () => ({
+  __esModule: true,
+  default: {
+    get: jest.fn().mockResolvedValue(null),
+    STORAGE_KEYS: {
+      streakCount: "streakCount",
+    },
+  },
+}));
 
 // Mock vector icons
 jest.mock("react-native-vector-icons/MaterialCommunityIcons", () => "Icon");

@@ -1,5 +1,5 @@
-import { render, screen, waitFor } from "@testing-library/react-native";
 import React from "react";
+import { render, screen } from "@testing-library/react-native";
 import FogCutterScreen from "../src/screens/FogCutterScreen";
 
 const mockGetJSON = jest.fn();
@@ -8,20 +8,22 @@ const mockSetJSON = jest.fn();
 jest.mock("../src/services/StorageService", () => ({
   __esModule: true,
   default: {
+    getJSON: (...args: unknown[]) => mockGetJSON(...args),
+    setJSON: (...args: unknown[]) => mockSetJSON(...args),
     STORAGE_KEYS: {
       tasks: "tasks",
     },
-    getJSON: (...args: unknown[]) => mockGetJSON(...args),
-    setJSON: (...args: unknown[]) => mockSetJSON(...args),
   },
 }));
 
+jest.mock("../src/components/ui/LinearButton", () => ({
+  LinearButton: ({ title }: { title: string }) => <>{title}</>,
+}));
 
 describe("FogCutterScreen", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    mockGetJSON.mockResolvedValue(null);
-    mockSetJSON.mockResolvedValue(true);
+    mockGetJSON.mockReset();
+    mockSetJSON.mockReset();
   });
 
   it("loads tasks from storage and renders them", async () => {
@@ -36,9 +38,7 @@ describe("FogCutterScreen", () => {
 
     render(<FogCutterScreen />);
 
-    await waitFor(() => {
-      expect(screen.getByText("Draft outline")).toBeTruthy();
-      expect(screen.getByText("2 steps")).toBeTruthy();
-    });
+    expect(await screen.findByText("Draft outline")).toBeTruthy();
+    expect(screen.getByText("2 steps")).toBeTruthy();
   });
 });

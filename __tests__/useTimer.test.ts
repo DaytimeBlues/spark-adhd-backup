@@ -64,6 +64,31 @@ describe("useTimer", () => {
     expect(result.current.formattedTime).toBe("01:05");
   });
 
+  it("supports autoStart and completion state", () => {
+    const { result } = renderHook(() =>
+      useTimer({ initialTime: 1, autoStart: true }),
+    );
+
+    expect(result.current.isRunning).toBe(true);
+
+    act(() => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    expect(result.current.timeLeft).toBe(0);
+    expect(result.current.hasCompleted).toBe(true);
+  });
+
+  it("allows setting time directly", () => {
+    const { result } = renderHook(() => useTimer({ initialTime: 10 }));
+
+    act(() => {
+      result.current.setTime(42);
+    });
+
+    expect(result.current.timeLeft).toBe(42);
+  });
+
   it("calls onComplete when timer finishes", async () => {
     const onComplete = jest.fn();
     const { result } = renderHook(() =>

@@ -85,8 +85,8 @@ const CBTGuideScreen = ({ navigation }: any) => {
                             <Icon name="arrow-left" size={24} color={Tokens.colors.text.primary} />
                         </TouchableOpacity>
                         <View>
-                            <Text style={styles.title}>CBT for ADHD</Text>
-                            <Text style={styles.subtitle}>Evidence-based strategies</Text>
+                            <Text style={styles.headerTitle}>CBT for ADHD</Text>
+                            <Text style={styles.headerSubtitle}>Evidence-based strategies</Text>
                         </View>
                     </View>
 

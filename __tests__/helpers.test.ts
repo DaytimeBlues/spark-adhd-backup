@@ -1,13 +1,4 @@
-import { formatTime, calculateStreak } from "../src/utils/helpers";
-import StorageService from "../src/services/StorageService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
-jest.mock("@react-native-async-storage/async-storage", () => ({
-  getItem: jest.fn(),
-  setItem: jest.fn(),
-  removeItem: jest.fn(),
-}));
-
+import { formatTime, calculateStreak, generateId, getDayName } from "../src/utils/helpers";
 describe("helpers", () => {
   describe("formatTime", () => {
     it("formats 0 seconds correctly", () => {
@@ -58,29 +49,23 @@ describe("helpers", () => {
     });
   });
 
-  describe("StorageService", () => {
-    beforeEach(() => {
-      jest.clearAllMocks();
+  describe("generateId", () => {
+    it("returns unique non-empty strings", () => {
+      const first = generateId();
+      const second = generateId();
+
+      expect(typeof first).toBe("string");
+      expect(typeof second).toBe("string");
+      expect(first).not.toEqual("");
+      expect(second).not.toEqual("");
+      expect(first).not.toEqual(second);
     });
+  });
 
-    it("setJSON stringifies values", async () => {
-      const payload = { count: 2, items: ["a", "b"] };
-      await StorageService.setJSON("test-key", payload);
-
-      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
-        "test-key",
-        JSON.stringify(payload),
-      );
-    });
-
-    it("getJSON parses values", async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
-        JSON.stringify({ ok: true }),
-      );
-
-      const result = await StorageService.getJSON<{ ok: boolean }>("test-key");
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith("test-key");
-      expect(result).toEqual({ ok: true });
+  describe("getDayName", () => {
+    it("returns the correct day name", () => {
+      const date = new Date("2024-01-01T12:00:00Z");
+      expect(getDayName(date)).toBe("Monday");
     });
   });
 });

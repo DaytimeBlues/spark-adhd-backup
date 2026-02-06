@@ -11,8 +11,8 @@ import {
   Easing,
   useWindowDimensions,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import OverlayService from '../services/OverlayService';
+import StorageService from '../services/StorageService';
 import { Tokens } from '../theme/tokens';
 import ModeCard, { type ModeCardMode } from '../components/home/ModeCard';
 
@@ -107,8 +107,11 @@ const HomeScreen = ({ navigation }: any) => {
 
   const loadStreak = async () => {
     try {
-      const streakCount = await AsyncStorage.getItem('streakCount');
-      setStreak(streakCount ? parseInt(streakCount, 10) : 0);
+      const streakCount = await StorageService.get(
+        StorageService.STORAGE_KEYS.streakCount,
+      );
+      const parsed = streakCount ? parseInt(streakCount, 10) : 0;
+      setStreak(Number.isNaN(parsed) ? 0 : parsed);
     } catch (e) {
       console.log('Error loading streak:', e);
     }
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Tokens.colors.text.primary,
   },
-  overlayCard: {
+  overlayToggleSection: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -252,18 +255,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: Tokens.colors.neutral.borderSubtle,
   },
-  overlayTextContainer: {
-    flex: 1,
-    marginRight: Tokens.spacing[4],
-  },
-  overlayTitle: {
+  overlayToggleTitle: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.base,
     fontWeight: '600',
     color: Tokens.colors.text.primary,
     marginBottom: Tokens.spacing[1],
   },
-  overlayDesc: {
+  overlayToggleDesc: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.xs,
     color: Tokens.colors.text.secondary,

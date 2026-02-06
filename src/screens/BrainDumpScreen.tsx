@@ -121,15 +121,16 @@ const BrainDumpScreen = () => {
           <View style={styles.inputSection}>
             <View style={styles.inputWrapper}>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  Platform.OS === 'web' ? ({ outlineWidth: 0 } as any) : null,
+                ]}
                 placeholder="What's on your mind?"
                 placeholderTextColor={Tokens.colors.text.tertiary}
                 value={input}
                 onChangeText={setInput}
                 onSubmitEditing={addItem}
                 multiline
-                // Web specific
-                {...(Platform.OS === 'web' ? { style: [styles.input, { outlineWidth: 0 }] } : {})}
               />
             </View>
             <LinearButton
