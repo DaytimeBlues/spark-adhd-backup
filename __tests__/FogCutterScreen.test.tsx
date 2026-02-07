@@ -22,6 +22,7 @@ jest.mock("../src/components/ui/LinearButton", () => ({
 
 describe("FogCutterScreen", () => {
   beforeEach(() => {
+    jest.useRealTimers();
     mockGetJSON.mockReset();
     mockSetJSON.mockReset();
   });
