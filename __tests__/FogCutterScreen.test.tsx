@@ -27,7 +27,7 @@ describe("FogCutterScreen", () => {
   });
 
   it("loads tasks from storage and renders them", async () => {
-    mockGetJSON.mockResolvedValueOnce([
+    mockGetJSON.mockResolvedValue([
       {
         id: "task-1",
         text: "Draft outline",
@@ -39,6 +39,6 @@ describe("FogCutterScreen", () => {
     render(<FogCutterScreen />);
 
     expect(await screen.findByText("Draft outline")).toBeTruthy();
-    expect(screen.getByText("2 steps")).toBeTruthy();
+    expect(await screen.findByText("2 steps")).toBeTruthy();
   });
 });
