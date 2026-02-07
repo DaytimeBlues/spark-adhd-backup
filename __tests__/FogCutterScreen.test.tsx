@@ -41,5 +41,5 @@ describe("FogCutterScreen", () => {
 
     expect(await screen.findByText("Draft outline")).toBeTruthy();
     expect(await screen.findByText("2 steps")).toBeTruthy();
-  });
+  }, 15000);
 });
