@@ -16,12 +16,10 @@ import StorageService from '../services/StorageService';
 import { Tokens } from '../theme/tokens';
 import ModeCard, { type ModeCardMode } from '../components/home/ModeCard';
 
-// -- Constants --
 const ANIMATION_DURATION = 500;
 const ANIMATION_STAGGER = 80;
 const ENTRANCE_OFFSET_Y = 30;
 
-// -- Types --
 type Mode = { id: string } & ModeCardMode;
 
 const HomeScreen = ({ navigation }: any) => {
@@ -29,12 +27,10 @@ const HomeScreen = ({ navigation }: any) => {
   const [isOverlayEnabled, setIsOverlayEnabled] = useState(false);
   const { width } = useWindowDimensions();
 
-  // Responsive layout logic
   const isWeb = Platform.OS === 'web';
-  const numColumns = isWeb && width > 768 ? 3 : 2;
-  const cardWidth = isWeb && width > 768 ? '31%' : '47%'; // spacing handled by flex/justify
+  const cardWidth = isWeb && width > 768 ? '31%' : '47%';
 
-  const modes = useMemo(
+  const modes = useMemo<Mode[]>(
     () => [
       { id: 'ignite', name: 'Ignite', icon: 'fire', desc: '5-min focus timer', accent: Tokens.colors.indigo.primary },
       { id: 'fogcutter', name: 'Fog Cutter', icon: 'weather-windy', desc: 'Break tasks down', accent: Tokens.colors.info.main },
@@ -46,7 +42,6 @@ const HomeScreen = ({ navigation }: any) => {
     [],
   );
 
-  // Animation refs
   const fadeAnims = useRef(modes.map(() => new Animated.Value(0))).current;
   const slideAnims = useRef(modes.map(() => new Animated.Value(ENTRANCE_OFFSET_Y))).current;
 
@@ -54,7 +49,6 @@ const HomeScreen = ({ navigation }: any) => {
     loadStreak();
     checkOverlayPermission();
 
-    // Trigger entrance animation
     const animations = modes.map((_, i) => {
       return Animated.parallel([
         Animated.timing(fadeAnims[i], {
@@ -107,9 +101,7 @@ const HomeScreen = ({ navigation }: any) => {
 
   const loadStreak = async () => {
     try {
-      const streakCount = await StorageService.get(
-        StorageService.STORAGE_KEYS.streakCount,
-      );
+      const streakCount = await StorageService.get(StorageService.STORAGE_KEYS.streakCount);
       const parsed = streakCount ? parseInt(streakCount, 10) : 0;
       setStreak(Number.isNaN(parsed) ? 0 : parsed);
     } catch (e) {
@@ -138,44 +130,47 @@ const HomeScreen = ({ navigation }: any) => {
     else if (modeId === 'fogcutter') navigateByRouteName('FogCutter');
     else if (modeId === 'pomodoro') navigateByRouteName('Pomodoro');
     else if (modeId === 'anchor') navigateByRouteName('Anchor');
-    else navigateByRouteName('Focus'); // ignite -> Focus
+    else navigateByRouteName('Focus');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.maxWidthWrapper}>
-
           <View style={styles.header}>
             <View>
-              <Text style={styles.title} testID="home-title" accessibilityLabel="home-title">
+              <Text style={styles.title} testID="home-title" accessibilityLabel="Spark home">
                 Spark
               </Text>
               <Text style={styles.subtitle}>Ready to focus?</Text>
             </View>
-            <View style={styles.streakBadge} testID="home-streak-badge" accessibilityLabel="home-streak-badge">
+            <View style={styles.streakBadge} testID="home-streak-badge" accessibilityLabel="Current streak">
               <Text style={styles.streakEmoji}>🔥</Text>
-              <Text style={styles.streakText} testID="home-streak" accessibilityLabel="home-streak">
+              <Text style={styles.streakText} testID="home-streak" accessibilityLabel={`${streak} day streak`}>
                 {streak} day{streak !== 1 ? 's' : ''} streak
               </Text>
             </View>
           </View>
 
-          {isOverlayEnabled !== null && Platform.OS === 'android' && (
-            <View style={styles.overlayCard}>
+          {Platform.OS === 'android' && (
+            <View style={[styles.overlayCard, isOverlayEnabled && styles.overlayCardActive]}>
               <View>
-                <Text style={styles.overlayTitle}>Focus Overlay</Text>
+                <Text style={styles.overlayTitle}>Focus overlay</Text>
                 <Text style={styles.overlayDesc}>Block apps during deep work</Text>
               </View>
-              <Switch
-                testID="home-overlay-toggle"
-                accessibilityLabel="home-overlay-toggle"
-                trackColor={{ false: Tokens.colors.neutral[600], true: Tokens.colors.brand[500] }}
-                thumbColor={Tokens.colors.neutral[0]}
-                ios_backgroundColor={Tokens.colors.neutral[700]}
-                onValueChange={toggleOverlay}
-                value={isOverlayEnabled}
-              />
+              <View style={styles.overlaySwitchHitTarget}>
+                <Switch
+                  testID="home-overlay-toggle"
+                  accessibilityRole="switch"
+                  accessibilityLabel="Focus overlay switch"
+                  accessibilityState={{ checked: isOverlayEnabled }}
+                  trackColor={{ false: Tokens.colors.neutral[600], true: Tokens.colors.brand[500] }}
+                  thumbColor={Tokens.colors.neutral[0]}
+                  ios_backgroundColor={Tokens.colors.neutral[700]}
+                  onValueChange={toggleOverlay}
+                  value={isOverlayEnabled}
+                />
+              </View>
             </View>
           )}
 
@@ -197,7 +192,6 @@ const HomeScreen = ({ navigation }: any) => {
               </Animated.View>
             ))}
           </View>
-
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -230,7 +224,7 @@ const styles = StyleSheet.create({
     fontSize: Tokens.type.h1,
     fontWeight: '700',
     color: Tokens.colors.text.primary,
-    letterSpacing: -0.5, // Tighter for headers
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontFamily: 'Inter',
@@ -259,28 +253,38 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Tokens.colors.text.primary,
   },
-  overlayToggleSection: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  overlayCard: {
+    minHeight: Tokens.layout.minTapTargetComfortable,
     marginBottom: Tokens.spacing[8],
     padding: Tokens.spacing[4],
     backgroundColor: Tokens.colors.neutral.darker,
     borderRadius: Tokens.radii.lg,
     borderWidth: 1,
     borderColor: Tokens.colors.neutral.borderSubtle,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  overlayToggleTitle: {
+  overlayCardActive: {
+    borderColor: Tokens.colors.brand[500],
+  },
+  overlayTitle: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.base,
     fontWeight: '600',
     color: Tokens.colors.text.primary,
     marginBottom: Tokens.spacing[1],
   },
-  overlayToggleDesc: {
+  overlayDesc: {
     fontFamily: 'Inter',
     fontSize: Tokens.type.xs,
     color: Tokens.colors.text.secondary,
+  },
+  overlaySwitchHitTarget: {
+    minWidth: Tokens.layout.minTapTargetComfortable,
+    minHeight: Tokens.layout.minTapTargetComfortable,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   modesGrid: {
     flexDirection: 'row',
