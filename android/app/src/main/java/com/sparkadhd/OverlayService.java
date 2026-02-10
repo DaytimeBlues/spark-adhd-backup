@@ -9,6 +9,7 @@ import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -18,25 +19,32 @@ import android.widget.TextView;
 
 import androidx.core.app.NotificationCompat;
 
+import java.lang.ref.WeakReference;
+
 public class OverlayService extends Service {
+  private static final String TAG = "OverlayService";
   private static final String CHANNEL_ID = "spark_overlay";
   private static final int NOTIFICATION_ID = 1001;
-  private static OverlayService instance;
+  private static WeakReference<OverlayService> instanceRef;
 
   private WindowManager windowManager;
   private FrameLayout bubbleView;
   private TextView countView;
 
   public static void updateCount(int count) {
+    OverlayService instance = instanceRef != null ? instanceRef.get() : null;
     if (instance != null) {
       instance.setCount(count);
+    } else {
+      Log.w(TAG, "updateCount called but service instance is null");
     }
   }
 
   @Override
   public void onCreate() {
     super.onCreate();
-    instance = this;
+    Log.d(TAG, "onCreate - Starting overlay service");
+    instanceRef = new WeakReference<>(this);
     windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
     createOverlay();
     startForeground(NOTIFICATION_ID, createNotification());
@@ -50,11 +58,19 @@ public class OverlayService extends Service {
   @Override
   public void onDestroy() {
     super.onDestroy();
-    if (bubbleView != null) {
-      windowManager.removeView(bubbleView);
+    Log.d(TAG, "onDestroy - Stopping overlay service");
+    if (bubbleView != null && windowManager != null) {
+      try {
+        windowManager.removeView(bubbleView);
+      } catch (IllegalArgumentException e) {
+        Log.w(TAG, "View already removed", e);
+      }
       bubbleView = null;
     }
-    instance = null;
+    if (instanceRef != null) {
+      instanceRef.clear();
+      instanceRef = null;
+    }
   }
 
   @Override
