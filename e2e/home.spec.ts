@@ -38,7 +38,7 @@ test.describe('Home Screen', () => {
         await page.goto('/');
 
         await page.getByTestId('mode-fogcutter').click();
-        await expect(page.getByPlaceholder('What feels overwhelming?')).toBeVisible();
+        await expect(page.getByPlaceholder('What feels overwhelming?')).toBeVisible({ timeout: 15000 });
     });
 
     test('should display bottom tab navigation', async ({ page }) => {

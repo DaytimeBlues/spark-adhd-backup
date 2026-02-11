@@ -8,9 +8,10 @@
 
 | Key | Value |
 |-----|-------|
-| **Repo Name** | `spark-adhd` |
+| **Repo Name** | `spark-adhd-backup` |
 | **Goal** | Speed of delivery (not learning a new stack) |
-| **Primary Platforms** | Web (GitHub Pages), Android, iOS |
+| **Primary Platforms** | Web/PWA first (Android Chrome priority) |
+| **Secondary Platforms** | Native Android bridge (optional, feature-gated) |
 | **Deployment** | GitHub Pages (responsive PWA) |
 
 ### Tech Stack
@@ -22,10 +23,11 @@
 | **Navigation** | React Navigation 6 (Stack + Bottom Tabs) |
 | **State** | React `useState` / `useContext` (upgrade to Redux Toolkit if complexity grows) |
 | **Persistence** | `@react-native-async-storage/async-storage` (local-only) |
-| **OAuth** | `@react-native-google-signin/google-signin` (for Google Tasks/Calendar/Keep APIs) |
 | **Bundler (Web)** | Webpack |
 | **Testing** | Jest + RTL (unit), Playwright (web E2E), Detox (native E2E) |
 | **CI/CD** | GitHub Actions → GitHub Pages |
+
+> Native Android testing and Android Studio workflows are only required when changing native modules (`android/`, overlay bridge/services, or native permissions/build logic).
 
 ### Secrets Configuration
 
@@ -111,14 +113,52 @@ This is not a general productivity app. It is a **friction-reducer** and **cogni
 
 ---
 
-### ✅ Feature I: Android Overlay (Floating Bubble)
+### ✅ Feature D: Anchor Breathing
 
-**Description**: Persistent floating UI showing the current task count.
+**Description**: Guided breathing patterns for regulation and focus.
+
+**Technical Logic**:
+
+- Patterns: `4-7-8`, `Box`, `Energize`
+- Visual phase loop: inhale/hold/exhale/wait
+- Session state managed locally; user can start/stop anytime
+
+---
+
+### ✅ Feature E: Check-In
+
+**Description**: Mood + energy capture with recommendation output.
+
+**Technical Logic**:
+
+- Captures mood/energy scales and optional notes
+- Persists entries under `STORAGE_KEYS.checkIns`
+- Displays recommendation based on captured state
+
+---
+
+### ✅ Feature F: Brain Dump & AI Sort
+
+**Description**: Quick capture for racing thoughts with optional AI-assisted categorization.
+
+**Technical Logic**:
+
+- **Capture**: Save entries to `AsyncStorage` under `STORAGE_KEYS.brainDump`.
+- **AI Sort**: Optional flow via `/api/sort` and `AISortService`.
+- **Behavior**: Returns category/priority suggestions (`task`, `event`, `reminder`, `thought`, `worry`, `idea`).
+- **Fallback**: If AI is unavailable or key is missing, endpoint returns validated fallback suggestions.
+- **Limitations**: Advisory output only; users should review before acting.
+
+---
+
+### ✅ Feature I: Android Overlay (Floating Menu)
+
+**Description**: Persistent floating UI providing an expandable quick-action menu (chat-head style) for rapid task access.
 
 **Architecture**:
 - **Native Service (`OverlayService.java`)**: Manages the life cycle of the system window overlay.
-- **Native Module (`OverlayModule.java`)**: Bridge between JS and Java to start/stop/update the overlay.
-- **JS Wrapper (`OverlayService.ts`)**: High-level API for React components to interact with the native overlay.
+- **Native Module (`OverlayModule.java`)**: Bridge between JS and Java to start/stop/update the overlay state and handle expansion.
+- **JS Wrapper (`OverlayService.ts`)**: High-level API for React components to interact with the native overlay, including deep-link intent handling.
 
 **Permissions**: Requires `SYSTEM_ALERT_WINDOW` and `FOREGROUND_SERVICE`.
 
@@ -130,7 +170,7 @@ This is not a general productivity app. It is a **friction-reducer** and **cogni
 |---------|--------|
 | Cloud sync / multi-device | Local-first philosophy; adds complexity |
 | Social features / sharing | Out of scope for solo ADHD tool |
-| AI-powered micro-step generation | Cool but scope creep |
+| AI-powered micro-step generation | Deferred for now; focus on AI Sorting first |
 | Push notifications | Requires native setup; defer to v2 |
 | Google Keep integration | Keep API is limited; focus on Tasks first |
 | Gamification backend (leaderboards) | Local streak counter is sufficient for MVP |
@@ -224,8 +264,9 @@ interface PomodoroState extends TimerState {
 
 | Layout | Purpose |
 |--------|---------|
-| `MainTabNavigator` | Bottom tabs for primary navigation |
-| Screen wrapper | Consistent padding, SafeAreaView, gradient background |
+| `WebNavBar` (web) | Top navigation optimized for mobile browser UX |
+| Bottom tabs (native) | Primary navigation for native shell only |
+| Screen wrapper | Consistent padding, SafeAreaView, token-driven dark theme |
 
 ### Page Hierarchy
 
@@ -250,29 +291,17 @@ interface PomodoroState extends TimerState {
 | `Card` | (to create) | Glassmorphic card with 8px grid |
 | `TimerDisplay` | (to create) | Shared timer UI for Ignite/Pomodoro |
 
-### Design Tokens (from AGENTS.md)
+### Design Tokens
 
-```css
-/* Colors */
---bg-deep: #1a1a2e;
---surface: rgba(255, 255, 255, 0.05);
---primary: #A06EE1;
---border: rgba(255, 255, 255, 0.1);
+Canonical source:
+- `src/theme/tokens.ts`
+- `docs/DESIGN_RULES.md`
 
-/* Spacing (8pt grid) */
---space-1: 8px;
---space-2: 16px;
---space-3: 24px;
---space-4: 32px;
-
-/* Radius */
---radius-button: 100px;  /* Pill buttons */
---radius-card: 16px;
-
-/* Effects */
---glass-blur: blur(12px);
---glass-bg: rgba(255, 255, 255, 0.05);
-```
+Rules:
+- No hardcoded hex values in UI code when token exists.
+- No ad-hoc spacing/typography/radii values.
+- Web + Android Chrome behavior is the primary visual target.
+- Token examples in this file are informational only; `tokens.ts` is authoritative.
 
 ---
 
@@ -296,7 +325,7 @@ npm run e2e          # Playwright E2E (web)
 
 1. **Build**: `npm run build:web` → outputs to `dist/`
 2. **Deploy**: GitHub Actions workflow pushes `dist/` to `gh-pages` branch
-3. **URL**: `https://daytimeblues.github.io/spark-adhd/`
+3. **URL**: `https://DaytimeBlues.github.io/spark-adhd-backup`
 
 ### Recommended GitHub Action
 
@@ -306,7 +335,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
@@ -364,6 +393,14 @@ jobs:
 
 3. **Streak Feature**: Deferred to future version.
 
+## X. Security & Compliance
+
+The project follows OWASP 2025 standards for web and mobile security.
+
+- **Security Checklist**: See [docs/SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md) for current controls.
+- **Secret Scanning**: `gitleaks` is configured for local/CI scanning workflows.
+- **Credential Safety**: No secrets should be committed to the repository. Use `src/config/secrets.ts` (ignored) or environment variables.
+
 ---
 
-*Last updated: 2026-01-22*
+*Last updated: 2026-02-11*

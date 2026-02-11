@@ -1,9 +1,11 @@
 import React, { Suspense, lazy } from 'react';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Platform } from 'react-native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Tokens } from '../theme/tokens';
+import { WebNavBar } from './WebNavBar';
+import { ROUTES } from './routes';
 
 // Critical screens - loaded normally
 import HomeScreen from '../screens/HomeScreen';
@@ -22,10 +24,18 @@ const CBTGuideScreen = lazy(() => import('../screens/CBTGuideScreen'));
 const withSuspense = (Component: React.ComponentType<any>) => (props: any) => (
   <Suspense
     fallback={
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Tokens.colors.neutral.darkest }}>
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: Tokens.colors.neutral.darkest,
+        }}
+      >
         <ActivityIndicator size="large" color={Tokens.colors.indigo.primary} />
       </View>
-    }>
+    }
+  >
     <Component {...props} />
   </Suspense>
 );
@@ -43,14 +53,26 @@ const Tab = createBottomTabNavigator();
 
 const HomeStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="HomeMain" component={HomeScreen} />
-    <Stack.Screen name="CheckIn" component={LazyCheckIn} />
-    <Stack.Screen name="CBTGuide" component={LazyCBTGuide} />
+    <Stack.Screen name={ROUTES.HOME_MAIN} component={HomeScreen} />
+    <Stack.Screen name={ROUTES.CHECK_IN} component={LazyCheckIn} />
+    <Stack.Screen name={ROUTES.CBT_GUIDE} component={LazyCBTGuide} />
   </Stack.Navigator>
 );
 
 const TabNavigator = () => (
   <Tab.Navigator
+    tabBar={
+      Platform.OS === 'web' ? (props) => <WebNavBar {...props} /> : undefined
+    }
+    sceneContainerStyle={
+      Platform.OS === 'web'
+        ? {
+            paddingTop: 64,
+            backgroundColor: Tokens.colors.neutral.darkest,
+            height: '100%', // Ensure full height
+          }
+        : undefined
+    }
     screenOptions={({ route }) => ({
       tabBarIcon: ({ focused }) => {
         const icons: Record<string, string> = {
@@ -63,7 +85,11 @@ const TabNavigator = () => (
           <Icon
             name={icons[route.name]}
             size={24}
-            color={focused ? Tokens.colors.indigo.primary : Tokens.colors.text.tertiary}
+            color={
+              focused
+                ? Tokens.colors.indigo.primary
+                : Tokens.colors.text.tertiary
+            }
           />
         );
       },
@@ -83,20 +109,21 @@ const TabNavigator = () => (
         fontSize: 12,
         fontWeight: '600',
       },
-    })}>
-    <Tab.Screen name="Home" component={HomeStack} />
-    <Tab.Screen name="Focus" component={IgniteScreen} />
-    <Tab.Screen name="Tasks" component={LazyBrainDump} />
-    <Tab.Screen name="Calendar" component={LazyCalendar} />
+    })}
+  >
+    <Tab.Screen name={ROUTES.HOME} component={HomeStack} />
+    <Tab.Screen name={ROUTES.FOCUS} component={IgniteScreen} />
+    <Tab.Screen name={ROUTES.TASKS} component={LazyBrainDump} />
+    <Tab.Screen name={ROUTES.CALENDAR} component={LazyCalendar} />
   </Tab.Navigator>
 );
 
 const AppNavigator = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="Main" component={TabNavigator} />
-    <Stack.Screen name="FogCutter" component={LazyFogCutter} />
-    <Stack.Screen name="Pomodoro" component={LazyPomodoro} />
-    <Stack.Screen name="Anchor" component={LazyAnchor} />
+    <Stack.Screen name={ROUTES.MAIN} component={TabNavigator} />
+    <Stack.Screen name={ROUTES.FOG_CUTTER} component={LazyFogCutter} />
+    <Stack.Screen name={ROUTES.POMODORO} component={LazyPomodoro} />
+    <Stack.Screen name={ROUTES.ANCHOR} component={LazyAnchor} />
   </Stack.Navigator>
 );
 

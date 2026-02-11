@@ -62,6 +62,23 @@ const OverlayService = {
     }
     OverlayModule?.updateCount?.(count);
   },
+
+  collapseOverlay() {
+    if (Platform.OS !== "android") {
+      return;
+    }
+    OverlayModule?.collapseOverlay?.();
+  },
+
+  async isExpanded(): Promise<boolean> {
+    if (Platform.OS !== "android") {
+      return false;
+    }
+    if (!OverlayModule?.isExpanded) {
+      return false;
+    }
+    return OverlayModule.isExpanded();
+  },
 };
 
 export default OverlayService;

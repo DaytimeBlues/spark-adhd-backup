@@ -1,5 +1,6 @@
 package com.sparkadhd;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -10,6 +11,7 @@ import android.util.Log;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.facebook.react.bridge.BaseActivityEventListener;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -19,10 +21,20 @@ public class OverlayModule extends ReactContextBaseJavaModule {
   private static final String TAG = "OverlayModule";
   private static final String NOTIFICATION_PERMISSION = "android.permission.POST_NOTIFICATIONS";
   private final ReactApplicationContext reactContext;
+  private Promise pendingPermissionPromise;
+  private final BaseActivityEventListener activityEventListener = new BaseActivityEventListener() {
+    @Override
+    public void onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+      if (requestCode == OVERLAY_PERMISSION_REQUEST_CODE) {
+        resolvePendingPermissionPromise();
+      }
+    }
+  };
 
   public OverlayModule(ReactApplicationContext reactContext) {
     super(reactContext);
     this.reactContext = reactContext;
+    this.reactContext.addActivityEventListener(activityEventListener);
   }
 
   @Override
@@ -72,6 +84,20 @@ public class OverlayModule extends ReactContextBaseJavaModule {
     } catch (Exception e) {
       Log.e(TAG, "Failed to update count", e);
     }
+  }
+
+  @ReactMethod
+  public void collapseOverlay() {
+    OverlayService service = OverlayService.getInstance();
+    if (service != null) {
+      service.collapseMenuFromJs();
+    }
+  }
+
+  @ReactMethod
+  public void isExpanded(Promise promise) {
+    OverlayService service = OverlayService.getInstance();
+    promise.resolve(service != null && service.isExpanded());
   }
 
   @ReactMethod

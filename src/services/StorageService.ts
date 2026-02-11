@@ -1,5 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const STORAGE_VERSION = 1;
+const STORAGE_VERSION_KEY = 'storageVersion';
+
 const STORAGE_KEYS = {
   streakCount: 'streakCount',
   lastUseDate: 'lastUseDate',
@@ -10,7 +13,53 @@ const STORAGE_KEYS = {
   pomodoroState: 'pomodoroState',
 };
 
+/**
+ * Storage migration logic
+ * Add migration functions here as schema evolves
+ */
+const migrations: Record<number, () => Promise<void>> = {
+  // Example: Version 2 migration
+  // 2: async () => {
+  //   const oldKey = await AsyncStorage.getItem('oldKey');
+  //   if (oldKey) {
+  //     await AsyncStorage.setItem('newKey', transformData(oldKey));
+  //     await AsyncStorage.removeItem('oldKey');
+  //   }
+  // },
+};
+
+const runMigrations = async (): Promise<void> => {
+  try {
+    const storedVersion = await AsyncStorage.getItem(STORAGE_VERSION_KEY);
+    const currentVersion = storedVersion ? parseInt(storedVersion, 10) : 0;
+
+    if (currentVersion < STORAGE_VERSION) {
+      // Run all migrations between current and target version
+      for (let v = currentVersion + 1; v <= STORAGE_VERSION; v++) {
+        if (migrations[v]) {
+          await migrations[v]();
+        }
+      }
+
+      await AsyncStorage.setItem(
+        STORAGE_VERSION_KEY,
+        STORAGE_VERSION.toString(),
+      );
+    }
+  } catch (error) {
+    console.error('Storage migration error:', error);
+  }
+};
+
 const StorageService = {
+  /**
+   * Initialize storage and run migrations
+   * Call this once at app startup
+   */
+  async init(): Promise<void> {
+    await runMigrations();
+  },
+
   async get(key: string): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(key);

@@ -4,7 +4,7 @@
 - Script: `scripts/regression.sh`
 - NPM entrypoint: `npm run test:regression`
 
-This script runs the critical tests plus coverage enforcement for core logic.
+This script runs the critical tests plus coverage enforcement for core logic. Primary focus is verifying the Web/PWA builds and critical paths.
 
 ## Bug-to-test rule
 - Every bugfix **must** include a regression test that fails before the fix and passes after.

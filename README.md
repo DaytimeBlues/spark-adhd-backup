@@ -1,6 +1,13 @@
-# Spark ADHD - React Native
+# Spark ADHD - PWA & React Native
 
-React Native port of the Spark PWA for ADHD behavioral activation.
+A behavioral activation tool for ADHD, designed as a high-performance **PWA (Progressive Web App)** with an optional React Native mobile bridge.
+
+> [!IMPORTANT]
+> **Primary Workflow**: Most developers should use the **Web/PWA** version. It provides the full app experience through any mobile browser and can be "Installed" as a standalone app on your home screen.
+
+## Deployment Status
+
+- **Live PWA**: [https://DaytimeBlues.github.io/spark-adhd-backup](https://DaytimeBlues.github.io/spark-adhd-backup)
 
 ## Features
 
@@ -9,100 +16,80 @@ React Native port of the Spark PWA for ADHD behavioral activation.
 - **Pomodoro** - Classic Pomodoro technique (25/5)
 - **Anchor** - Breathing exercises (4-7-8, Box, Energize)
 - **Check In** - Mood and energy tracking with recommendations
-- **Brain Dump** - Quick capture for racing thoughts
+- **Brain Dump** - Quick capture for racing thoughts with AI-powered sorting suggestions
+- **Security** - Built-in security checklist and secret scanning (gitleaks) support
 - **Calendar** - Simple monthly view
 - **Crisis Mode** - Safety resources and coping strategies
-- **Floating Bubble (Android)** - Task count overlay that floats over other apps
 
-## Project Structure
+## Getting Started (Web/PWA)
 
-```
-spark-adhd-rn/
-├── android/                    # Android Studio project
-├── ios/                        # iOS project
-├── src/
-│   ├── components/            # Reusable UI components
-│   ├── screens/               # App screens (12 total)
-│   ├── services/              # API, storage, auth services
-│   ├── hooks/                 # Custom React hooks
-│   ├── utils/                 # Helper functions
-│   ├── navigation/            # React Navigation setup
-│   └── assets/                # Images, sounds, fonts
-├── __tests__/                 # Unit tests
-├── detox.config.js            # E2E test configuration
-├── jest.config.js             # Unit test configuration
-└── package.json
-```
-
-## Getting Started
+This is the recommended way to run and test the app.
 
 ### Prerequisites
 
 - Node.js 18+
-- React Native CLI
-- Android Studio
-- JDK 17
 
 ### Installation
 
 ```bash
 npm install
-cd android && ./gradlew clean
 ```
 
-### Running on Android Emulator
+### Running Locally
 
 ```bash
-npm run android
+npm run web
 ```
 
-### Android Floating Bubble (Overlay)
-
-The Android app includes a floating bubble overlay that shows your current task count.
-
-**Permissions Required:**
-- `SYSTEM_ALERT_WINDOW`: "Display over other apps"
-- `FOREGROUND_SERVICE`: For background timer persistence
-
-**How to enable:**
-1. Open App Settings > Advanced > Display over other apps.
-2. Toggle "Allow display over other apps" for Spark ADHD.
-3. Enable the "Floating Bubble" toggle on the Home screen to show the overlay.
+The app will be available at `http://localhost:3000`.
 
 ### Running Tests
 
 ```bash
-# Unit tests
+# Verify JavaScript "Brain" logic
 npm test
 
-# E2E tests
-npm run test:e2e:android
-
-# Linting
-npm run lint
+# E2E Browser Testing (Mobile emulation)
+npm run e2e
 ```
 
-### Building Release APK
+### Deploying
 
 ```bash
-npm run build:release
+npm run deploy  # Pushes to GitHub Pages
+```
+
+---
+
+## 🚀 Advanced: Native Android (Future Option)
+
+The native Android shell is a secondary wrapper used for platform-specific features like system-wide overlays. **Android Studio is NOT required for general feature development.**
+
+### Extras in Native Mode
+
+- **Floating Menu (Android)** - An expandable quick-action chat-head style menu that floats over other apps for rapid access to core features.
+
+### Native Setup (If needed)
+
+1. Install JDK 17 and Android Studio.
+2. `npm install`
+3. `cd android && ./gradlew clean`
+4. `npm run android`
+
+### Native Tests
+
+```bash
+# UI Tests (Requires Emulator)
+npm run test:e2e:android
 ```
 
 ## Tech Stack
 
-- React Native 0.74
-- TypeScript
-- React Navigation 6
-- Jest + React Native Testing Library
-- Detox for E2E testing
-- AsyncStorage for persistence
-- Google Sign-In for OAuth
-- Metro UI: Visual variant for Home/Tasks/Focus screens (available on Metro branch)
-
-## GitHub
-
-- Repository: https://github.com/DaytimeBlues/spark-adhd (this repo)
-- Original PWA version archived in git tags
+- **Framework**: React Native Web (allows single codebase for PWA + Native)
+- **Logic**: TypeScript
+- **State/Storage**: AsyncStorage
+- **Testing**: Jest + Playwright (E2E)
+- **Deployment**: GitHub Pages
 
 ## License
 

@@ -1,34 +1,29 @@
-# Test Strategy (Phase 3)
+# Test Strategy: Logic & Web-First
 
-## Goals
-- Prioritize **failure-first** coverage (error paths, invalid data, async races).
-- Lock down **core logic** to ≥90% coverage with enforced thresholds.
-- Provide a repeatable regression suite for CI.
+Our goal is to ensure the "Brain" of the app is unbreakable, regardless of whether it's running in a browser or a native app.
 
-## Core logic definition (coverage >= 90%)
-- `src/utils/helpers.ts`
-- `src/services/StorageService.ts`
-- `src/hooks/useTimer.ts`
+## Core Logic (Priority 1)
 
-Coverage thresholds are enforced via `jest.config.js` (per-file thresholds).
+We enforce ≥90% coverage on non-UI logic to prevent regressions in user data.
 
-## Unit tests
-- Helpers: `formatTime`, `calculateStreak`.
-- Storage: `StorageService` success + failure behavior, invalid JSON handling.
-- Timer hook: `useTimer` start/pause/reset/onComplete behavior.
+- `src/utils/helpers.ts`: Time formatting and streak calculations.
+- `src/services/StorageService.ts`: Data persistence logic.
+- `src/hooks/useTimer.ts`: The central engine for all timers.
 
-## Integration tests
-- `FogCutterScreen` loading tasks from storage and rendering list content.
-- `HomeScreen` rendering (ensures no token/runtime regression).
+## Integration Path (Priority 2)
 
-## Mocking strategy
-- Async storage mocked via `@react-native-async-storage/async-storage` mocks.
-- Feature services (`StorageService`) mocked per-screen to isolate render behavior.
+Focus on the **Web Runtime** using Playwright.
 
-## Fuzz testing
-- Lightweight fuzz test for `formatTime` using randomized input values (no new dependencies).
+- Ensure the app scales correctly to various screen sizes.
+- Verify that state transitions (e.g., Timer -> Break) work across all platforms (Web is primary target).
+- Manual smoke tests on Android Chrome for touch responsiveness.
 
-## Coverage reporting
-- `npm run test:coverage` for the full repo.
-- `npm run test:regression` for the critical test set + enforced thresholds.
+## Native Edge Cases (Priority 3 / Future)
 
+Native-only features like the **Floating Overlay** are tested in isolation. These are not required for standard feature parity in the PWA.
+
+## Summary of Commands
+
+- `npm run test:coverage`: Full logic verification.
+- `npm run e2e`: Full browser integration verification.
+- `npm run test:regression`: Critical path verification (logic + basic UI).

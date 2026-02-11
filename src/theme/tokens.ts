@@ -2,6 +2,7 @@
 // Web-first, must also work on Android web.
 
 import { LinearColors, LinearSpacing, LinearTypography, LinearRadii, LinearElevation } from './linearTokens';
+import { Motion } from './motion';
 
 export const Colors = LinearColors;
 export const Spacing = LinearSpacing;
@@ -25,6 +26,8 @@ export const Tokens = {
   radii: Radii,
   elevation: Elevation,
   layout: Layout,
+  motion: Motion,
 } as const;
 
 export type TokensType = typeof Tokens;
+

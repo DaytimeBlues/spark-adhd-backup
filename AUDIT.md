@@ -4,7 +4,7 @@
 
 1. **Storage access bypassing `StorageService`**
    - **Locations:** `src/screens/HomeScreen.tsx` (historically used `AsyncStorage` directly).
-   - **Risk:** Inconsistent error handling and key usage; makes it easy to diverge from canonical storage behavior and key names.
+   - **Risk:** Inconsistent error handling and key usage; makes it easy to diverge from canonical storage behavior (localStorage on Web, SQLite on Native) and key names.
    - **Minimal fix:** Use `StorageService.get` + `StorageService.STORAGE_KEYS` (implemented in Phase 2).
 
 2. **Token usage mismatch leading to runtime failures**
@@ -25,7 +25,7 @@
 5. **Implicit coupling in navigation logic**
    - **Locations:** `src/screens/HomeScreen.tsx` (manual string matching for navigation IDs).
    - **Risk:** Hard-coded route strings become stale when navigation changes; no compiler safety.
-   - **Minimal fix:** Use a typed route map or central route constants.
+   - **Minimal fix:** Use a typed route map or central route constants. (Note: Web routing should prioritize URL predictability).
 
 6. **Style tokens not consistently enforced**
    - **Locations:** `src/screens/FogCutterScreen.tsx` (hard-coded font sizes), `src/screens/*` (scattered literal values).

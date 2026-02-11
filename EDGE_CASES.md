@@ -1,7 +1,7 @@
 # Edge Cases (Phase 3)
 
 ## Data + parsing
-- `null` / `undefined` payloads from storage reads.
+- `null` / `undefined` payloads from storage reads (LocalStorage behavior).
 - Empty arrays for tasks, brain dumps, timers.
 - Corrupted JSON in local storage (invalid JSON string).
 - Schema drift: missing fields or extra fields in persisted payloads.
@@ -21,5 +21,6 @@
 
 ## Platform-specific
 - Web-only layout changes at >768px widths.
-- Android overlay permission denied vs granted paths.
+- Android Chrome PWA "Add to Home Screen" behavior.
+- Android overlay permission denied vs granted paths (Native only).
 

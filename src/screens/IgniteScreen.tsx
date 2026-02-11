@@ -1,15 +1,21 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
+  Pressable,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import SoundService from '../services/SoundService';
 import StorageService from '../services/StorageService';
-import {formatTime} from '../utils/helpers';
-import {Tokens} from '../theme/tokens';
+import { formatTime } from '../utils/helpers';
+import { Tokens } from '../theme/tokens';
+import { LinearButton } from '../components/ui/LinearButton';
+
+const HERO_TIMER_SIZE = 120;
+const GLOW_TEXT_SHADOW = '0 0 40px rgba(255,255,255,0.1)';
+const HOVER_SHADOW = '0 4px 12px rgba(0,0,0,0.2)';
 
 const IgniteScreen = () => {
   const [isRunning, setIsRunning] = useState(false);
@@ -61,7 +67,7 @@ const IgniteScreen = () => {
   const startTimer = () => {
     setIsRunning(true);
     intervalRef.current = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev <= 1) {
           setIsRunning(false);
           if (intervalRef.current) {
@@ -93,7 +99,7 @@ const IgniteScreen = () => {
   };
 
   const toggleSound = () => {
-    setIsPlaying(prev => {
+    setIsPlaying((prev) => {
       if (prev) {
         SoundService.pauseBrownNoise();
       } else {
@@ -106,54 +112,82 @@ const IgniteScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Ignite</Text>
-        <Text style={styles.subtitle}>5-Minute Focus Timer</Text>
+      <View style={styles.centerWrapper}>
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Text style={styles.title}>Ignite</Text>
+            <Text style={styles.subtitle}>5-Minute Focus Timer</Text>
+          </View>
 
-        <View style={styles.timerContainer}>
-          <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
-          <Text style={styles.status}>
-            {isRunning ? 'Focusing...' : 'Ready to start'}
-          </Text>
+          <View style={styles.timerCard}>
+            <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+            <Text style={styles.status}>
+              {isRunning ? '🔥 Focus Mode' : 'Ready to Ignite?'}
+            </Text>
+          </View>
+
+          <View style={styles.controls}>
+            {!isRunning ? (
+              <LinearButton
+                title="Start Focus"
+                onPress={startTimer}
+                size="lg"
+                style={styles.mainButton}
+              />
+            ) : (
+              <LinearButton
+                title="Pause"
+                variant="secondary"
+                onPress={pauseTimer}
+                size="lg"
+                style={styles.mainButton}
+              />
+            )}
+
+            <LinearButton
+              title="Reset"
+              variant="ghost"
+              onPress={resetTimer}
+              size="md"
+            />
+          </View>
+
+          <Pressable
+            style={({
+              pressed,
+              hovered,
+            }: {
+              pressed: boolean;
+              hovered?: boolean;
+            }) => [
+              styles.soundToggle,
+              isPlaying ? styles.soundToggleActive : styles.soundToggleInactive,
+              hovered && styles.soundToggleHovered,
+              pressed && styles.soundTogglePressed,
+            ]}
+            onPress={toggleSound}
+          >
+            <Text style={styles.soundIcon}>{isPlaying ? '🔊' : '🔇'}</Text>
+            <View>
+              <Text
+                style={[
+                  styles.soundTitle,
+                  isPlaying ? styles.soundTextActive : styles.soundTextInactive,
+                ]}
+              >
+                Brown Noise
+              </Text>
+              <Text
+                style={[
+                  styles.soundStatus,
+                  isPlaying ? styles.soundTextActive : styles.soundTextInactive,
+                ]}
+              >
+                {isPlaying ? 'On' : 'Off'}
+              </Text>
+            </View>
+          </Pressable>
         </View>
-
-        <View style={styles.controls}>
-          {!isRunning ? (
-            <TouchableOpacity
-              style={[styles.button, styles.primaryButton]}
-              onPress={startTimer}>
-              <Text style={styles.primaryButtonText}>Start</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={[styles.button, styles.dangerButton]}
-              onPress={pauseTimer}>
-              <Text style={styles.dangerButtonText}>Pause</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.button, styles.outlineButton]}
-            onPress={resetTimer}>
-            <Text style={styles.outlineButtonText}>Reset</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.soundButton,
-            isPlaying ? styles.soundButtonActive : styles.soundButtonInactive,
-          ]}
-          onPress={toggleSound}>
-          <Text
-            style={
-              isPlaying
-                ? styles.soundButtonTextActive
-                : styles.soundButtonTextInactive
-            }>
-            {isPlaying ? '🔊 Brown Noise On' : '🔇 Brown Noise Off'}
-          </Text>
-        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -162,119 +196,140 @@ const IgniteScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Tokens.colors.neutral[900],
+    backgroundColor: Tokens.colors.neutral.darkest,
+  },
+  centerWrapper: {
+    flex: 1,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
-    padding: Tokens.spacing[24],
-    alignItems: 'center',
-    justifyContent: 'center',
     width: '100%',
     maxWidth: Tokens.layout.maxWidth.prose,
+    padding: Tokens.spacing[6],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  header: {
+    marginBottom: Tokens.spacing[8],
+    alignItems: 'center',
   },
   title: {
-    fontSize: Tokens.type['5xl'],
-    fontWeight: '300',
-    color: Tokens.colors.neutral[0],
-    marginBottom: Tokens.spacing[4],
+    fontFamily: 'Inter',
+    fontSize: Tokens.type['4xl'],
+    fontWeight: '800',
+    color: Tokens.colors.text.primary,
+    marginBottom: Tokens.spacing[2],
     letterSpacing: -1,
-  },
-  subtitle: {
-    fontSize: Tokens.type.xl,
-    color: Tokens.colors.neutral[300],
-    marginBottom: Tokens.spacing[48],
-  },
-  timerContainer: {
-    alignItems: 'center',
-    marginBottom: Tokens.spacing[48],
-  },
-  timer: {
-    fontSize: Tokens.type.giga,
-    fontWeight: '300',
-    color: Tokens.colors.neutral[0],
-    fontVariant: ['tabular-nums'],
-    letterSpacing: -2,
     textAlign: 'center',
   },
+  subtitle: {
+    fontFamily: 'Inter',
+    fontSize: Tokens.type.base,
+    color: Tokens.colors.text.secondary,
+    textAlign: 'center',
+    maxWidth: 400,
+    lineHeight: 24,
+  },
+  timerCard: {
+    alignItems: 'center',
+    marginBottom: Tokens.spacing[12],
+    paddingVertical: Tokens.spacing[8],
+    width: '100%',
+  },
+  timer: {
+    fontFamily: 'Inter',
+    fontSize: HERO_TIMER_SIZE, // Hero size
+    fontWeight: '900',
+    color: Tokens.colors.text.primary,
+    fontVariant: ['tabular-nums'],
+    letterSpacing: -6,
+    lineHeight: HERO_TIMER_SIZE,
+    marginBottom: Tokens.spacing[4],
+    ...Platform.select({
+      web: {
+        textShadow: GLOW_TEXT_SHADOW,
+      },
+    }),
+  },
   status: {
+    fontFamily: 'Inter',
     fontSize: Tokens.type.xl,
     color: Tokens.colors.brand[400],
-    marginTop: Tokens.spacing[16],
+    fontWeight: '600',
+    letterSpacing: -0.5,
   },
   controls: {
+    width: '100%',
+    maxWidth: 320,
+    gap: Tokens.spacing[4],
+    marginBottom: Tokens.spacing[12],
+  },
+  mainButton: {
+    width: '100%',
+  },
+  soundToggle: {
     flexDirection: 'row',
-    marginBottom: Tokens.spacing[32],
-    justifyContent: 'center',
-    gap: Tokens.spacing[16],
-    flexWrap: 'wrap',
-  },
-  button: {
-    paddingHorizontal: Tokens.spacing[32],
-    paddingVertical: Tokens.spacing[16],
-    borderRadius: Tokens.radii.pill,
-    minHeight: Tokens.layout.minTapTarget,
-    justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 120,
-    ...Tokens.elevation.sm,
-  },
-  primaryButton: {
-    backgroundColor: Tokens.colors.brand[500],
-  },
-  primaryButtonText: {
-    color: Tokens.colors.neutral[0],
-    fontSize: Tokens.type.lg,
-    fontWeight: '600',
-  },
-  dangerButton: {
-    backgroundColor: Tokens.colors.danger[500],
-  },
-  dangerButtonText: {
-    color: Tokens.colors.neutral[0],
-    fontSize: Tokens.type.lg,
-    fontWeight: '600',
-  },
-  outlineButton: {
-    backgroundColor: 'transparent',
+    paddingVertical: Tokens.spacing[3],
+    paddingHorizontal: Tokens.spacing[5],
+    borderRadius: Tokens.radii.full,
     borderWidth: 1,
-    borderColor: Tokens.colors.neutral[500],
-    elevation: 0, // override elevation for outline
-    shadowOpacity: 0,
-  },
-  outlineButtonText: {
-    color: Tokens.colors.neutral[200],
-    fontSize: Tokens.type.lg,
-    fontWeight: '600',
-  },
-  soundButton: {
-    minWidth: 220,
-    paddingHorizontal: Tokens.spacing[24],
-    paddingVertical: Tokens.spacing[16],
-    borderRadius: Tokens.radii.pill,
-    borderWidth: 1,
-    minHeight: Tokens.layout.minTapTarget,
+    minWidth: 180,
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: Tokens.spacing[3],
+    backgroundColor: Tokens.colors.neutral.darker,
+    borderColor: Tokens.colors.neutral.borderSubtle,
+    marginTop: Tokens.spacing[8],
+    ...Platform.select({
+      web: {
+        transition: Tokens.motion.transitions.base,
+        cursor: 'pointer',
+      },
+    }),
   },
-  soundButtonActive: {
-    backgroundColor: Tokens.colors.brand[600],
-    borderColor: Tokens.colors.brand[600],
-    ...Tokens.elevation.sm,
+  soundToggleActive: {
+    backgroundColor: Tokens.colors.brand[900],
+    borderColor: Tokens.colors.brand[500],
+    ...Platform.select({
+      web: {
+        boxShadow: `0 0 20px ${Tokens.colors.brand[900]}`,
+      },
+    }),
   },
-  soundButtonInactive: {
-    backgroundColor: 'transparent',
-    borderColor: Tokens.colors.brand[400],
+  soundToggleInactive: {
+    // defaults handled in base style
   },
-  soundButtonTextActive: {
-    color: Tokens.colors.neutral[0],
-    fontSize: Tokens.type.base,
+  soundToggleHovered: {
+    transform: [{ translateY: -2 }],
+    ...Platform.select({
+      web: {
+        boxShadow: HOVER_SHADOW,
+      },
+    }),
+  },
+  soundTogglePressed: {
+    opacity: 0.8,
+    transform: [{ scale: Tokens.motion.scales.press }],
+  },
+  soundIcon: {
+    fontSize: Tokens.type['2xl'],
+  },
+  soundTitle: {
+    fontFamily: 'Inter',
+    fontSize: Tokens.type.sm,
     fontWeight: '600',
   },
-  soundButtonTextInactive: {
-    color: Tokens.colors.brand[300],
-    fontSize: Tokens.type.base,
-    fontWeight: '600',
+  soundStatus: {
+    fontFamily: 'Inter',
+    fontSize: Tokens.type.xs,
+  },
+  soundTextActive: {
+    color: Tokens.colors.brand[100],
+  },
+  soundTextInactive: {
+    color: Tokens.colors.text.tertiary,
   },
 });
 

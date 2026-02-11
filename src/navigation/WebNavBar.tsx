@@ -1,0 +1,115 @@
+import React from 'react';
+import {
+  View,
+  Text,
+  Pressable,
+  Platform,
+  useWindowDimensions,
+} from 'react-native';
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Tokens } from '../theme/tokens';
+
+export const WebNavBar = ({ state, navigation }: BottomTabBarProps) => {
+  const { width } = useWindowDimensions();
+  // Mobile breakpoint for "Android Chrome" feel vs desktop
+  // We want to keep it usable on small screens.
+  const isSmallScreen = width < 450;
+
+  return (
+    <View
+      style={{
+        flexDirection: 'row',
+        height: 64,
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: isSmallScreen
+          ? Tokens.spacing[3]
+          : Tokens.spacing[6],
+        backgroundColor: Tokens.colors.neutral.darkest,
+        borderBottomWidth: 1,
+        borderBottomColor: Tokens.colors.neutral.borderSubtle,
+        position: Platform.OS === 'web' ? 'absolute' : 'relative',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000, // Ensure it stays on top
+      }}
+    >
+      {/* Logo Area */}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text
+          style={{
+            color: Tokens.colors.text.primary,
+            fontFamily: 'Inter',
+            fontSize: Tokens.type.h3,
+            fontWeight: '700',
+            letterSpacing: -0.5,
+          }}
+        >
+          Spark
+        </Text>
+      </View>
+
+      {/* Navigation Links */}
+      <View
+        style={{
+          flexDirection: 'row',
+          gap: isSmallScreen ? Tokens.spacing[1] : Tokens.spacing[2],
+        }}
+      >
+        {state.routes.map((route, index) => {
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate(route.name);
+            }
+          };
+
+          return (
+            <Pressable
+              key={route.key}
+              onPress={onPress}
+              style={({ pressed }) => ({
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                paddingVertical: Tokens.spacing[3], // Increased for touch target
+                paddingHorizontal: isSmallScreen
+                  ? Tokens.spacing[3]
+                  : Tokens.spacing[4],
+                borderRadius: Tokens.radii.full, // Pill shape
+                backgroundColor: isFocused
+                  ? Tokens.colors.neutral.darker
+                  : pressed
+                    ? Tokens.colors.neutral.dark
+                    : 'transparent',
+                opacity: pressed ? 0.7 : 1,
+              })}
+            >
+              <Text
+                style={{
+                  color: isFocused
+                    ? Tokens.colors.text.primary
+                    : Tokens.colors.text.secondary,
+                  fontFamily: 'Inter',
+                  fontSize: Tokens.type.sm,
+                  fontWeight: isFocused ? '700' : '500',
+                  letterSpacing: 0.5, // Slight tracking for premium feel
+                }}
+              >
+                {route.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
+};

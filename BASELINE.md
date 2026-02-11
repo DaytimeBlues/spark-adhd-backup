@@ -26,6 +26,7 @@ npm test
 **Result:** ❌ Failed
 - Failing suite: `__tests__/HomeScreen.test.tsx`
 - Error: `TypeError: Cannot read properties of undefined (reading 'xl2')` from `src/screens/HomeScreen.tsx`.
+- Note: Primary test focus is Web logic; Native tests are optional.
 
 ### Web build
 ```bash

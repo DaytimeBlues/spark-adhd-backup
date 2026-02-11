@@ -13,7 +13,7 @@
 
 ### State ownership
 - **Canonical state per feature:** feature hooks in `src/hooks/` (e.g., `useTimer`) with screens as thin renderers.
-- **Policy:** Avoid mirrored state between screen local state and storage by centralizing persistence in hooks or service functions.
+- **Policy:** Avoid mirrored state between screen local state and storage by centralizing persistence in hooks or service functions. Prioritize Web/PWA responsiveness.
 
 ## Delete list
 - ✅ `src/services/GoogleAuthService.ts` (removed; unused, referenced missing secrets).
@@ -25,5 +25,5 @@
 - [x] **Step 3:** Fix token usage mismatch in `HomeScreen` styles.
 - [ ] **Step 4:** Introduce `storageSchemas.ts` and migrate `FogCutter` + `BrainDump` persisted shapes.
 - [ ] **Step 5:** Consolidate timers behind `useTimer` and delete per-screen interval logic.
-- [ ] **Step 6:** Introduce a central route map to remove stringly-typed navigation in `HomeScreen`.
+- [ ] **Step 6:** Introduce a central route map to remove stringly-typed navigation in `HomeScreen`. (Align with Web URL patterns).
 

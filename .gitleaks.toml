@@ -1,0 +1,12 @@
+title = "spark-adhd gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignore generated bundles and scanner output artifacts"
+paths = [
+  "^dist/.*$",
+  "^bundle\\..*\\.js$",
+  "^gitleaks-.*\\.json$",
+]

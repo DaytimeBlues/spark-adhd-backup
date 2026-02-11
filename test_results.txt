@@ -1,0 +1,214 @@
+
+> spark-adhd-rn@1.0.0 test
+> jest PlaudService RecordingService --verbose
+
+  console.error
+    Transcription error: Error: Network Fail
+        at Object.<anonymous> (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\__tests__\PlaudService.test.ts:89:56)
+        at Generator.next (<anonymous>)
+        at asyncGeneratorStep (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\@babel\runtime\helpers\asyncToGenerator.js:3:17)
+        at _next (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\@babel\runtime\helpers\asyncToGenerator.js:17:9)
+        at C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\@babel\runtime\helpers\asyncToGenerator.js:22:7
+        at new Promise (<anonymous>)
+        at Object.<anonymous> (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\@babel\runtime\helpers\asyncToGenerator.js:14:12)
+        at Promise.then.completed (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\utils.js:298:28)
+        at new Promise (<anonymous>)
+        at callAsyncCircusFn (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\utils.js:231:10)
+        at _callCircusTest (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:316:40)
+        at processTicksAndRejections (node:internal/process/task_queues:103:5)
+        at _runTest (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:252:3)
+        at _runTestsForDescribeBlock (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:126:9)
+        at _runTestsForDescribeBlock (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:121:9)
+        at _runTestsForDescribeBlock (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:121:9)
+        at run (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\run.js:71:3)
+        at runAndTransformResultsToJestFormat (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapterInit.js:122:21)
+        at jestAdapter (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-circus\build\legacy-code-todo-rewrite\jestAdapter.js:79:19)
+        at runTestInternal (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-runner\build\runTest.js:367:16)
+        at runTest (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-runner\build\runTest.js:444:34)
+        at Object.worker (C:\Users\Steve\OneDrive\Desktop\Github Repos\spark-adhd-backup\node_modules\jest-runner\build\testWorker.js:106:12)
+
+    [0m [90m 83 |[39m             }[33m;[39m
+     [90m 84 |[39m         } [36mcatch[39m (error) {
+    [31m[1m>[22m[39m[90m 85 |[39m             console[33m.[39merror([32m'Transcription error:'[39m[33m,[39m error)[33m;[39m
+     [90m    |[39m                     [31m[1m^[22m[39m
+     [90m 86 |[39m             [36mreturn[39m {
+     [90m 87 |[39m                 success[33m:[39m [36mfalse[39m[33m,[39m
+     [90m 88 |[39m                 error[33m:[39m error [36minstanceof[39m [33mError[39m [33m?[39m error[33m.[39mmessage [33m:[39m [32m'Unknown error'[39m[33m,[39m[0m
+
+      at PlaudServiceClass.error (src/services/PlaudService.ts:85:21)
+          at Generator.throw (<anonymous>)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _throw (node_modules/@babel/runtime/helpers/asyncToGenerator.js:20:9)
+
+  console.error
+    Microphone permission not granted
+
+    [0m [90m 85 |[39m             [36mconst[39m hasPermission [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mrequestPermissions()[33m;[39m
+     [90m 86 |[39m             [36mif[39m ([33m![39mhasPermission) {
+    [31m[1m>[22m[39m[90m 87 |[39m                 console[33m.[39merror([32m'Microphone permission not granted'[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 88 |[39m                 [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 89 |[39m             }
+     [90m 90 |[39m[0m
+
+      at RecordingServiceClass.error (src/services/RecordingService.ts:87:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+PASS __tests__/PlaudService.test.ts
+  PlaudService
+    transcribe
+      √ should handle successful transcription on Web (26 ms)
+      √ should handle successful transcription on Native (2 ms)
+      √ should handle API error responses (4 ms)
+      √ should handle network exceptions (137 ms)
+    healthCheck
+      √ should return true when API is reachable (1 ms)
+      √ should return false when API is unreachable (1 ms)
+
+  console.error
+    Microphone permission not granted
+
+    [0m [90m 85 |[39m             [36mconst[39m hasPermission [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mrequestPermissions()[33m;[39m
+     [90m 86 |[39m             [36mif[39m ([33m![39mhasPermission) {
+    [31m[1m>[22m[39m[90m 87 |[39m                 console[33m.[39merror([32m'Microphone permission not granted'[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 88 |[39m                 [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 89 |[39m             }
+     [90m 90 |[39m[0m
+
+      at RecordingServiceClass.error (src/services/RecordingService.ts:87:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.error
+    Microphone permission not granted
+
+    [0m [90m 85 |[39m             [36mconst[39m hasPermission [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mrequestPermissions()[33m;[39m
+     [90m 86 |[39m             [36mif[39m ([33m![39mhasPermission) {
+    [31m[1m>[22m[39m[90m 87 |[39m                 console[33m.[39merror([32m'Microphone permission not granted'[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 88 |[39m                 [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 89 |[39m             }
+     [90m 90 |[39m[0m
+
+      at RecordingServiceClass.error (src/services/RecordingService.ts:87:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    No active recording
+
+    [0m [90m 116 |[39m     [36masync[39m stopRecording()[33m:[39m [33mPromise[39m[33m<[39m[33mRecordingResult[39m [33m|[39m [36mnull[39m[33m>[39m {
+     [90m 117 |[39m         [36mif[39m ([33m![39m[36mthis[39m[33m.[39mrecording [33m||[39m [33m![39m[36mthis[39m[33m.[39misRecording) {
+    [31m[1m>[22m[39m[90m 118 |[39m             console[33m.[39mwarn([32m'No active recording'[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 119 |[39m             [36mreturn[39m [36mnull[39m[33m;[39m
+     [90m 120 |[39m         }
+     [90m 121 |[39m[0m
+
+      at RecordingServiceClass.warn (src/services/RecordingService.ts:118:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at RecordingServiceClass.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at RecordingServiceClass.apply [as stopRecording] (src/services/RecordingService.ts:116:24)
+      at Object.stopRecording (__tests__/RecordingService.test.ts:68:51)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  console.warn
+    No active recording
+
+    [0m [90m 116 |[39m     [36masync[39m stopRecording()[33m:[39m [33mPromise[39m[33m<[39m[33mRecordingResult[39m [33m|[39m [36mnull[39m[33m>[39m {
+     [90m 117 |[39m         [36mif[39m ([33m![39m[36mthis[39m[33m.[39mrecording [33m||[39m [33m![39m[36mthis[39m[33m.[39misRecording) {
+    [31m[1m>[22m[39m[90m 118 |[39m             console[33m.[39mwarn([32m'No active recording'[39m)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 119 |[39m             [36mreturn[39m [36mnull[39m[33m;[39m
+     [90m 120 |[39m         }
+     [90m 121 |[39m[0m
+
+      at RecordingServiceClass.warn (src/services/RecordingService.ts:118:21)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at RecordingServiceClass.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+      at RecordingServiceClass.apply [as stopRecording] (src/services/RecordingService.ts:116:24)
+      at Object.stopRecording (__tests__/RecordingService.test.ts:78:51)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+      at node_modules/@babel/runtime/helpers/asyncToGenerator.js:22:7
+      at Object.<anonymous> (node_modules/@babel/runtime/helpers/asyncToGenerator.js:14:12)
+
+  console.error
+    Microphone permission not granted
+
+    [0m [90m 85 |[39m             [36mconst[39m hasPermission [33m=[39m [36mawait[39m [36mthis[39m[33m.[39mrequestPermissions()[33m;[39m
+     [90m 86 |[39m             [36mif[39m ([33m![39mhasPermission) {
+    [31m[1m>[22m[39m[90m 87 |[39m                 console[33m.[39merror([32m'Microphone permission not granted'[39m)[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 88 |[39m                 [36mreturn[39m [36mfalse[39m[33m;[39m
+     [90m 89 |[39m             }
+     [90m 90 |[39m[0m
+
+      at RecordingServiceClass.error (src/services/RecordingService.ts:87:25)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+FAIL __tests__/RecordingService.test.ts
+  RecordingService
+    requestPermissions
+      √ should return true when granted (26 ms)
+      √ should return false when denied (1 ms)
+    startRecording
+      × should start recording when permissions are granted (131 ms)
+      √ should fail to start when permissions are denied (11 ms)
+    stopRecording
+      × should return result and reset state (17 ms)
+      √ should return null if not recording (25 ms)
+    cancelRecording
+      √ should reset state (8 ms)
+
+  ● RecordingService › startRecording › should start recording when permissions are granted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 50 |[39m             [90m// Mock already handled in jest.mock top-level[39m
+     [90m 51 |[39m             [36mconst[39m result [33m=[39m [36mawait[39m [33mRecordingService[39m[33m.[39mstartRecording()[33m;[39m
+    [31m[1m>[22m[39m[90m 52 |[39m             expect(result)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m    |[39m                            [31m[1m^[22m[39m
+     [90m 53 |[39m             expect([33mRecordingService[39m[33m.[39mgetIsRecording())[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 54 |[39m             expect([33mAudio[39m[33m.[39msetAudioModeAsync)[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 55 |[39m         })[33m;[39m[0m
+
+      at Object.toBe (__tests__/RecordingService.test.ts:52:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+  ● RecordingService › stopRecording › should return result and reset state
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"duration": 5000, "uri": "file://audio.m4a"}
+    Received: null
+
+    [0m [90m 68 |[39m             [36mconst[39m result [33m=[39m [36mawait[39m [33mRecordingService[39m[33m.[39mstopRecording()[33m;[39m
+     [90m 69 |[39m
+    [31m[1m>[22m[39m[90m 70 |[39m             expect(result)[33m.[39mtoEqual({
+     [90m    |[39m                            [31m[1m^[22m[39m
+     [90m 71 |[39m                 uri[33m:[39m [32m"file://audio.m4a"[39m[33m,[39m
+     [90m 72 |[39m                 duration[33m:[39m [35m5000[39m[33m,[39m
+     [90m 73 |[39m             })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/RecordingService.test.ts:70:28)
+      at asyncGeneratorStep (node_modules/@babel/runtime/helpers/asyncToGenerator.js:3:17)
+      at _next (node_modules/@babel/runtime/helpers/asyncToGenerator.js:17:9)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       2 failed, 11 passed, 13 total
+Snapshots:   0 total
+Time:        4.221 s
+Ran all test suites matching /PlaudService|RecordingService/i.
