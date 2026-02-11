@@ -140,7 +140,9 @@ const AnchorScreen = () => {
 
           {pattern && (
             <View style={styles.activeContainer}>
-              <Text style={styles.patternName}>{PATTERNS[pattern].name}</Text>
+              <View style={styles.activeHeader}>
+                <Text style={styles.patternName}>{PATTERNS[pattern].name}</Text>
+              </View>
 
               <View style={styles.breathingCircle}>
                 <View
@@ -191,8 +193,15 @@ const AnchorScreen = () => {
                       {PATTERNS[p].name}
                     </Text>
                     <Text style={styles.patternDetails}>
-                      In {PATTERNS[p].inhale} • Hold {PATTERNS[p].hold} • Out{' '}
-                      {PATTERNS[p].exhale}
+                      {[
+                        { label: 'In', val: PATTERNS[p].inhale },
+                        { label: 'Hold', val: PATTERNS[p].hold },
+                        { label: 'Out', val: PATTERNS[p].exhale },
+                        { label: 'Wait', val: PATTERNS[p].wait },
+                      ]
+                        .filter((s) => s.val > 0)
+                        .map((s) => `${s.label} ${s.val}`)
+                        .join(' • ')}
                     </Text>
                   </View>
                 </Pressable>
@@ -218,13 +227,14 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     maxWidth: Tokens.layout.maxWidth.prose,
-    padding: Tokens.spacing[6],
+    paddingHorizontal: Tokens.spacing[6],
+    paddingTop: Tokens.spacing[12],
+    paddingBottom: Tokens.spacing[8],
     alignItems: 'center',
-    justifyContent: 'center',
   },
   header: {
     width: '100%',
-    marginBottom: Tokens.spacing[8],
+    marginBottom: Tokens.spacing[10],
     alignItems: 'center',
   },
   title: {
@@ -242,20 +252,24 @@ const styles = StyleSheet.create({
     color: Tokens.colors.text.secondary,
     textAlign: 'center',
     maxWidth: 400,
+    lineHeight: 24,
   },
   activeContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     width: '100%',
     flex: 1,
-    minHeight: 400,
+    paddingVertical: Tokens.spacing[8],
+  },
+  activeHeader: {
+    alignItems: 'center',
+    width: '100%',
   },
   patternName: {
     fontFamily: 'Inter',
     color: Tokens.colors.brand[400],
     fontSize: Tokens.type['2xl'],
     fontWeight: '600',
-    marginBottom: Tokens.spacing[8],
     letterSpacing: -0.5,
   },
   breathingCircle: {
@@ -263,8 +277,8 @@ const styles = StyleSheet.create({
     height: BREATHING_CIRCLE_SIZE,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Tokens.spacing[16],
     position: 'relative',
+    marginVertical: Tokens.spacing[8],
   },
   circle: {
     width: INNER_CIRCLE_SIZE,
@@ -350,7 +364,7 @@ const styles = StyleSheet.create({
     color: Tokens.colors.text.primary,
     fontSize: Tokens.type.lg,
     fontWeight: '600',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   patternDetails: {
     fontFamily: 'Inter',
