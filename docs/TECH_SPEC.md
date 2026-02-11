@@ -113,14 +113,52 @@ This is not a general productivity app. It is a **friction-reducer** and **cogni
 
 ---
 
-### ✅ Feature I: Android Overlay (Floating Bubble)
+### ✅ Feature D: Anchor Breathing
 
-**Description**: Persistent floating UI showing the current task count.
+**Description**: Guided breathing patterns for regulation and focus.
+
+**Technical Logic**:
+
+- Patterns: `4-7-8`, `Box`, `Energize`
+- Visual phase loop: inhale/hold/exhale/wait
+- Session state managed locally; user can start/stop anytime
+
+---
+
+### ✅ Feature E: Check-In
+
+**Description**: Mood + energy capture with recommendation output.
+
+**Technical Logic**:
+
+- Captures mood/energy scales and optional notes
+- Persists entries under `STORAGE_KEYS.checkIns`
+- Displays recommendation based on captured state
+
+---
+
+### ✅ Feature F: Brain Dump & AI Sort
+
+**Description**: Quick capture for racing thoughts with optional AI-assisted categorization.
+
+**Technical Logic**:
+
+- **Capture**: Save entries to `AsyncStorage` under `STORAGE_KEYS.brainDump`.
+- **AI Sort**: Optional flow via `/api/sort` and `AISortService`.
+- **Behavior**: Returns category/priority suggestions (`task`, `event`, `reminder`, `thought`, `worry`, `idea`).
+- **Fallback**: If AI is unavailable or key is missing, endpoint returns validated fallback suggestions.
+- **Limitations**: Advisory output only; users should review before acting.
+
+---
+
+### ✅ Feature I: Android Overlay (Floating Menu)
+
+**Description**: Persistent floating UI providing an expandable quick-action menu (chat-head style) for rapid task access.
 
 **Architecture**:
 - **Native Service (`OverlayService.java`)**: Manages the life cycle of the system window overlay.
-- **Native Module (`OverlayModule.java`)**: Bridge between JS and Java to start/stop/update the overlay.
-- **JS Wrapper (`OverlayService.ts`)**: High-level API for React components to interact with the native overlay.
+- **Native Module (`OverlayModule.java`)**: Bridge between JS and Java to start/stop/update the overlay state and handle expansion.
+- **JS Wrapper (`OverlayService.ts`)**: High-level API for React components to interact with the native overlay, including deep-link intent handling.
 
 **Permissions**: Requires `SYSTEM_ALERT_WINDOW` and `FOREGROUND_SERVICE`.
 
@@ -132,7 +170,7 @@ This is not a general productivity app. It is a **friction-reducer** and **cogni
 |---------|--------|
 | Cloud sync / multi-device | Local-first philosophy; adds complexity |
 | Social features / sharing | Out of scope for solo ADHD tool |
-| AI-powered micro-step generation | Cool but scope creep |
+| AI-powered micro-step generation | Deferred for now; focus on AI Sorting first |
 | Push notifications | Requires native setup; defer to v2 |
 | Google Keep integration | Keep API is limited; focus on Tasks first |
 | Gamification backend (leaderboards) | Local streak counter is sufficient for MVP |
@@ -297,7 +335,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   deploy:
@@ -355,6 +393,14 @@ jobs:
 
 3. **Streak Feature**: Deferred to future version.
 
+## X. Security & Compliance
+
+The project follows OWASP 2025 standards for web and mobile security.
+
+- **Security Checklist**: See [docs/SECURITY_CHECKLIST.md](./SECURITY_CHECKLIST.md) for current controls.
+- **Secret Scanning**: `gitleaks` is configured for local/CI scanning workflows.
+- **Credential Safety**: No secrets should be committed to the repository. Use `src/config/secrets.ts` (ignored) or environment variables.
+
 ---
 
-*Last updated: 2026-01-22*
+*Last updated: 2026-02-11*

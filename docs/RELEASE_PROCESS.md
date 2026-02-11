@@ -27,11 +27,11 @@
 
 **Automated via GitHub Actions:**
 
-1. **Merge to main branch:**
+1. **Merge to master branch:**
    ```bash
-   git checkout main
+   git checkout master
    git merge feature-branch
-   git push origin main
+   git push origin master
    ```
 
 2. **GitHub Actions workflow triggers:**
@@ -193,7 +193,7 @@ If Google Analytics or similar integrated:
 
 1. **Create hotfix branch:**
    ```bash
-   git checkout main
+    git checkout master
    git checkout -b hotfix/critical-bug-fix
    ```
 
@@ -207,9 +207,9 @@ If Google Analytics or similar integrated:
 
 4. **Fast-track merge:**
    ```bash
-   git checkout main
+    git checkout master
    git merge hotfix/critical-bug-fix
-   git push origin main
+    git push origin master
    ```
 
 5. **Deploy immediately** (web via Actions, Android via manual build)
@@ -266,7 +266,7 @@ Follow **Semantic Versioning (semver):**
 
 ## Changelog Maintenance
 
-**Update `CHANGELOG.md` BEFORE merging to main:**
+**Update `CHANGELOG.md` BEFORE merging to master:**
 
 ```markdown
 ## [1.2.0] - 2026-02-15
@@ -296,13 +296,13 @@ Follow **Semantic Versioning (semver):**
 
 ## Disaster Recovery
 
-**If main branch corrupted:**
+**If master branch corrupted:**
 
 ```bash
 # Restore from last known good commit
-git checkout main
+git checkout master
 git reset --hard <last-good-commit-hash>
-git push --force origin main
+git push --force origin master
 ```
 
 **If production data lost (AsyncStorage):**

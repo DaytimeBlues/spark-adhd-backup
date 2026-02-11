@@ -27,7 +27,7 @@ Individuals with ADHD frequently experience executive dysfunction, manifesting a
 | US.1 | Professional | As a user, I want a "5-minute Ignite" timer | To overcome the hurdle of task initiation without the commitment of a full hour. |
 | US.2 | Professional | As a user, I want to use a "Fog Cutter" to break down a project | To reduce the cognitive load of complex projects into manageable steps. |
 | US.3 | Student | As a user, I want a one-tap "Anchor" breathing exercise | To quickly regulate my nervous system during emotional spikes. |
-| US.4 | All | As a user, I want to "Brain Dump" any thought | To clear my working memory so I can focus on the current task. |
+| US.4 | All | As a user, I want to "Brain Dump" any thought and have AI suggest categories | To clear my working memory and reduce the friction of manual organization. |
 | US.5 | All | As a user, I want to track my "Streak" | To use gamified dopamine feedback to build consistency. |
 
 ## 4. Technical Architecture
@@ -41,8 +41,8 @@ Individuals with ADHD frequently experience executive dysfunction, manifesting a
 
 ### 4.2 State & Persistence
 
-- **Storage**: `@react-native-async-storage/async-storage` for local persistence (streaks, check-ins).
-- **Architecture**: Redux Toolkit for centralized state management (recommended for complex synchronization between screens).
+- **Storage**: `@react-native-async-storage/async-storage` for local persistence (streaks, check-ins, tasks, brain dump).
+- **Architecture**: React state/hooks (`useState`, `useEffect`, focused service wrappers). Centralized store can be introduced later if complexity increases.
 
 ### 4.3 Testing
 
@@ -70,5 +70,5 @@ Applying Lidwell’s *Universal Principles of Design* and Norman’s *Design of 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | App Overwhelm | High | Keep the home screen grid simple; avoid adding "settings" or "options" deep in focus modes. |
-| Data Loss | Medium | Use robust Redux-persist or similar logic to ensure user streaks aren't lost on app updates. |
+| Data Loss | Medium | Use robust AsyncStorage persistence and backup/export workflow so streaks and entries are not lost on updates. |
 | Notification Fatigue | Medium | Ensure "Ignite" and "Pomodoro" notifications are meaningful and not annoying (haptic feedback preferred). |

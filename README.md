@@ -16,7 +16,8 @@ A behavioral activation tool for ADHD, designed as a high-performance **PWA (Pro
 - **Pomodoro** - Classic Pomodoro technique (25/5)
 - **Anchor** - Breathing exercises (4-7-8, Box, Energize)
 - **Check In** - Mood and energy tracking with recommendations
-- **Brain Dump** - Quick capture for racing thoughts
+- **Brain Dump** - Quick capture for racing thoughts with AI-powered sorting suggestions
+- **Security** - Built-in security checklist and secret scanning (gitleaks) support
 - **Calendar** - Simple monthly view
 - **Crisis Mode** - Safety resources and coping strategies
 
@@ -66,7 +67,7 @@ The native Android shell is a secondary wrapper used for platform-specific featu
 
 ### Extras in Native Mode
 
-- **Floating Bubble (Android)** - A task count overlay that floats over other apps.
+- **Floating Menu (Android)** - An expandable quick-action chat-head style menu that floats over other apps for rapid access to core features.
 
 ### Native Setup (If needed)
 
