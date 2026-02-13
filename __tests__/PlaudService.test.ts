@@ -13,6 +13,26 @@ jest.mock('react-native/Libraries/Utilities/Platform', () => ({
   ),
 }));
 
+// Mock AsyncStorage
+jest.mock('@react-native-async-storage/async-storage', () => ({
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+}));
+
+// Mock GoogleSignin
+jest.mock('@react-native-google-signin/google-signin', () => ({
+  GoogleSignin: {
+    configure: jest.fn(),
+    hasPlayServices: jest.fn(),
+    signIn: jest.fn(),
+    signInSilently: jest.fn(),
+    getTokens: jest.fn(),
+  },
+}));
+
+
 describe('PlaudService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -28,7 +48,13 @@ describe('PlaudService', () => {
       // @ts-ignore
       Platform.select.mockImplementation((dict) => dict.web || dict.default);
 
-      const mockBlob = { size: 1024, type: 'audio/m4a' };
+      // Create a mock Blob that looks like a real one for FormData
+      const mockBlob = {
+        size: 1024,
+        type: 'audio/m4a',
+        [Symbol.toStringTag]: 'Blob'
+      };
+
       (fetch as jest.Mock)
         .mockResolvedValueOnce({
           blob: jest.fn().mockResolvedValue(mockBlob),

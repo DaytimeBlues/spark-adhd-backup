@@ -27,10 +27,11 @@ describe("RecordingService", () => {
         RecordingService.reset();
 
         // Set default successful mocks
-        (Audio.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: "granted" });
+        (Audio.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: "granted", granted: true });
         (Audio.Recording.createAsync as jest.Mock).mockResolvedValue({
             recording: mockRecording,
         });
+
     });
 
     describe("requestPermissions", () => {
@@ -40,7 +41,7 @@ describe("RecordingService", () => {
         });
 
         it("should return false when denied", async () => {
-            (Audio.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: "denied" });
+            (Audio.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: "denied", granted: false });
             const result = await RecordingService.requestPermissions();
             expect(result).toBe(false);
         });

@@ -4,6 +4,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { StatusBar, Platform, View, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import StorageService from './src/services/StorageService';
+import { GoogleTasksSyncService } from './src/services/PlaudService';
 import { Tokens } from './src/theme/tokens';
 import { handleOverlayIntent, navigationRef } from './src/navigation/navigationRef';
 
@@ -14,6 +15,7 @@ const App = () => {
     const initializeApp = async () => {
       try {
         await StorageService.init();
+        await GoogleTasksSyncService.syncToBrainDump();
       } catch (error) {
         console.error('App initialization error:', error);
       } finally {
@@ -22,6 +24,12 @@ const App = () => {
     };
 
     initializeApp();
+
+    GoogleTasksSyncService.startForegroundPolling();
+
+    return () => {
+      GoogleTasksSyncService.stopForegroundPolling();
+    };
   }, []);
 
   useEffect(() => {
