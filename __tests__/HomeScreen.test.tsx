@@ -1,21 +1,21 @@
-import { act, fireEvent, render, screen } from "@testing-library/react-native";
-import React from "react";
-import HomeScreen from "../src/screens/HomeScreen";
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import React from 'react';
+import HomeScreen from '../src/screens/HomeScreen';
 
-jest.mock("../src/services/StorageService", () => ({
+jest.mock('../src/services/StorageService', () => ({
   __esModule: true,
   default: {
     get: jest.fn().mockResolvedValue(null),
     STORAGE_KEYS: {
-      streakCount: "streakCount",
+      streakCount: 'streakCount',
     },
   },
 }));
 
 // Mock vector icons
-jest.mock("react-native-vector-icons/MaterialCommunityIcons", () => "Icon");
+jest.mock('react-native-vector-icons/MaterialCommunityIcons', () => 'Icon');
 
-jest.mock("../src/services/OverlayService", () => ({
+jest.mock('../src/services/OverlayService', () => ({
   __esModule: true,
   default: {
     canDrawOverlays: jest.fn().mockResolvedValue(false),
@@ -30,8 +30,7 @@ const mockNavigation = {
   navigate: jest.fn(),
 };
 
-
-describe("HomeScreen", () => {
+describe('HomeScreen', () => {
   beforeAll(() => {
     jest.useFakeTimers();
   });
@@ -52,27 +51,27 @@ describe("HomeScreen", () => {
     return result;
   };
 
-  it("renders correctly", () => {
+  it('renders correctly', () => {
     renderHomeScreen();
-    expect(screen.getByText("Spark")).toBeTruthy();
+    expect(screen.getByText('Spark')).toBeTruthy();
   });
 
-  it("displays mode cards", () => {
+  it('displays mode cards', () => {
     renderHomeScreen();
-    expect(screen.getByText("Ignite")).toBeTruthy();
-    expect(screen.getByText("Fog Cutter")).toBeTruthy();
-    expect(screen.getByText("Pomodoro")).toBeTruthy();
-    expect(screen.getByText("CBT Guide")).toBeTruthy();
+    expect(screen.getByText('Ignite')).toBeTruthy();
+    expect(screen.getByText('Fog Cutter')).toBeTruthy();
+    expect(screen.getByText('Pomodoro')).toBeTruthy();
+    expect(screen.getByText('CBT Guide')).toBeTruthy();
   });
 
-  it("shows streak container", () => {
+  it('shows streak container', () => {
     renderHomeScreen();
     expect(screen.getByText(/0 days? streak/i)).toBeTruthy();
   });
 
-  it("navigates to FogCutter when its card is pressed", () => {
+  it('navigates to FogCutter when its card is pressed', () => {
     renderHomeScreen();
-    fireEvent.press(screen.getByTestId("mode-fogcutter"));
-    expect(mockNavigation.navigate).toHaveBeenCalledWith("FogCutter");
+    fireEvent.press(screen.getByTestId('mode-fogcutter'));
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('FogCutter');
   });
 });

@@ -1,11 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar, Platform, View, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import {
+  StatusBar,
+  Platform,
+  View,
+  ActivityIndicator,
+  DeviceEventEmitter,
+} from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import StorageService from './src/services/StorageService';
 import { Tokens } from './src/theme/tokens';
-import { handleOverlayIntent, navigationRef } from './src/navigation/navigationRef';
+import {
+  handleOverlayIntent,
+  navigationRef,
+} from './src/navigation/navigationRef';
 
 const App = () => {
   const [isReady, setIsReady] = useState(false);
@@ -25,9 +34,12 @@ const App = () => {
   }, []);
 
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('overlayRouteIntent', (payload) => {
-      handleOverlayIntent(payload ?? {});
-    });
+    const subscription = DeviceEventEmitter.addListener(
+      'overlayRouteIntent',
+      (payload) => {
+        handleOverlayIntent(payload ?? {});
+      },
+    );
 
     return () => {
       subscription.remove();

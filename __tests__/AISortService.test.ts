@@ -55,6 +55,8 @@ describe('AISortService', () => {
       json: jest.fn().mockResolvedValue({ error: 'Rate limit exceeded' }),
     });
 
-    await expect(AISortService.sortItems(['x'])).rejects.toThrow('Rate limit exceeded');
+    await expect(AISortService.sortItems(['x'])).rejects.toThrow(
+      'Rate limit exceeded',
+    );
   });
 });
