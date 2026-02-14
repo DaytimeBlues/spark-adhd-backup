@@ -15,7 +15,7 @@ class WebMCPService {
 
         // Wait for the polyfill/native API to be ready
         const registerTools = () => {
-            const modelContext = (navigator as any).modelContext;
+            const modelContext = (globalThis as any).navigator?.modelContext;
             if (!modelContext || !modelContext.registerTool) {
                 console.log('WebMCP: API not found, retrying...');
                 return;
