@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import SoundService from '../services/SoundService';
 import StorageService from '../services/StorageService';
+import UXMetricsService from '../services/UXMetricsService';
 import useTimer from '../hooks/useTimer';
 import { Tokens } from '../theme/tokens';
 import { LinearButton } from '../components/ui/LinearButton';
@@ -28,6 +29,7 @@ const IgniteScreen = () => {
       initialTime: IGNITE_DURATION_SECONDS,
       onComplete: () => {
         SoundService.playCompletionSound();
+        UXMetricsService.track('ignite_timer_completed');
       },
     });
 
@@ -42,6 +44,7 @@ const IgniteScreen = () => {
         }>(StorageService.STORAGE_KEYS.igniteState);
 
         if (storedState) {
+          UXMetricsService.track('ignite_session_restored');
           if (typeof storedState.timeLeft === 'number') {
             setTime(storedState.timeLeft);
           }
@@ -87,6 +90,7 @@ const IgniteScreen = () => {
 
   const startTimer = () => {
     start();
+    UXMetricsService.track('ignite_timer_started');
   };
 
   const pauseTimer = () => {

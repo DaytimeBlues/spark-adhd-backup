@@ -9,8 +9,11 @@ import {
   FlatList,
   Platform,
   ActivityIndicator,
+  LayoutAnimation,
+  UIManager,
 } from 'react-native';
 import StorageService from '../services/StorageService';
+import UXMetricsService from '../services/UXMetricsService';
 import { generateId } from '../utils/helpers';
 import { LinearButton } from '../components/ui/LinearButton';
 import { Tokens } from '../theme/tokens';
@@ -31,13 +34,30 @@ const FogCutterScreen = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideDismissed, setGuideDismissed] = useState(true);
 
   useEffect(() => {
-    const loadTasks = async () => {
+    if (Platform.OS === 'android') {
+      if (UIManager.setLayoutAnimationEnabledExperimental) {
+        UIManager.setLayoutAnimationEnabledExperimental(true);
+      }
+    }
+    const loadTasksAndGuide = async () => {
       try {
-        const storedTasks = await StorageService.getJSON<Task[]>(
-          StorageService.STORAGE_KEYS.tasks,
-        );
+        const [storedTasks, guideState] = await Promise.all([
+          StorageService.getJSON<Task[]>(StorageService.STORAGE_KEYS.tasks),
+          StorageService.getJSON<{ fogCutterDismissed?: boolean }>(
+            StorageService.STORAGE_KEYS.firstSuccessGuideState,
+          ),
+        ]);
+
+        if (guideState) {
+          setGuideDismissed(!!guideState.fogCutterDismissed);
+        } else {
+          setGuideDismissed(false);
+        }
+
         if (storedTasks && Array.isArray(storedTasks)) {
           const normalized = storedTasks.filter((item) => {
             return Boolean(
@@ -53,7 +73,7 @@ const FogCutterScreen = () => {
       }
     };
 
-    loadTasks();
+    loadTasksAndGuide();
   }, []);
 
   useEffect(() => {
@@ -76,9 +96,30 @@ const FogCutterScreen = () => {
         microSteps: [...microSteps],
       };
       setTasks((prevTasks) => [...prevTasks, newTask]);
+
+      if (!guideDismissed && !showGuide) {
+        UXMetricsService.track('fog_cutter_first_task_saved');
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setShowGuide(true);
+      }
+
       setTask('');
       setMicroSteps([]);
     }
+  };
+
+  const dismissGuide = async () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowGuide(false);
+    setGuideDismissed(true);
+    const currentState =
+      (await StorageService.getJSON<Record<string, boolean>>(
+        StorageService.STORAGE_KEYS.firstSuccessGuideState,
+      )) ?? {};
+    await StorageService.setJSON(
+      StorageService.STORAGE_KEYS.firstSuccessGuideState,
+      { ...currentState, fogCutterDismissed: true },
+    );
   };
 
   const toggleTask = (id: string) => {
@@ -176,6 +217,28 @@ const FogCutterScreen = () => {
           </View>
 
           <View style={styles.divider} />
+
+          {showGuide && (
+            <View style={styles.guideBanner}>
+              <View style={styles.guideContent}>
+                <Text style={styles.guideTitle}>CLARITY ACHIEVED.</Text>
+                <Text style={styles.guideText}>
+                  READY TO FOCUS? START A TIMER IN IGNITE.
+                </Text>
+              </View>
+              <Pressable
+                onPress={dismissGuide}
+                style={({ pressed }) => [
+                  styles.guideButton,
+                  pressed && styles.guideButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss guidance"
+              >
+                <Text style={styles.guideButtonText}>GOT IT</Text>
+              </Pressable>
+            </View>
+          )}
 
           <Text style={styles.sectionHeader}>ACTIVE TASKS</Text>
 
@@ -492,6 +555,51 @@ const styles = StyleSheet.create({
     fontSize: Tokens.type.sm,
     color: '#666666',
     letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  guideBanner: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#CC0000',
+    padding: Tokens.spacing[4],
+    marginBottom: Tokens.spacing[6],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Tokens.spacing[4],
+  },
+  guideContent: {
+    flex: 1,
+  },
+  guideTitle: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: '#CC0000',
+    marginBottom: Tokens.spacing[1],
+    letterSpacing: 1,
+  },
+  guideText: {
+    fontFamily: Tokens.type.fontFamily.sans,
+    fontSize: Tokens.type.sm,
+    color: '#FFFFFF',
+    lineHeight: 18,
+  },
+  guideButton: {
+    paddingVertical: Tokens.spacing[2],
+    paddingHorizontal: Tokens.spacing[3],
+    borderWidth: 1,
+    borderColor: '#333333',
+    backgroundColor: '#000000',
+  },
+  guideButtonPressed: {
+    backgroundColor: '#222222',
+  },
+  guideButtonText: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
     textTransform: 'uppercase',
   },
 });

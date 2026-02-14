@@ -22,6 +22,7 @@ import {
 } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import StorageService from '../services/StorageService';
+import UXMetricsService from '../services/UXMetricsService';
 import RecordingService from '../services/RecordingService';
 import PlaudService from '../services/PlaudService';
 import OverlayService from '../services/OverlayService';
@@ -77,7 +78,10 @@ const BrainDumpScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [sortingError, setSortingError] = useState<string | null>(null);
   const [sortedItems, setSortedItems] = useState<SortedItem[]>([]);
+  const [showGuide, setShowGuide] = useState(false);
+  const [guideDismissed, setGuideDismissed] = useState(true);
   const hasAutoRecorded = useRef(false);
+  const previousErrorRef = useRef(false);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const overlayCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
@@ -86,9 +90,21 @@ const BrainDumpScreen = () => {
 
   const loadItems = async () => {
     try {
-      const storedItems = await StorageService.getJSON<DumpItem[]>(
-        StorageService.STORAGE_KEYS.brainDump,
-      );
+      const [storedItems, guideState] = await Promise.all([
+        StorageService.getJSON<DumpItem[]>(
+          StorageService.STORAGE_KEYS.brainDump,
+        ),
+        StorageService.getJSON<{ brainDumpDismissed?: boolean }>(
+          StorageService.STORAGE_KEYS.firstSuccessGuideState,
+        ),
+      ]);
+
+      if (guideState) {
+        setGuideDismissed(!!guideState.brainDumpDismissed);
+      } else {
+        setGuideDismissed(false);
+      }
+
       if (storedItems && Array.isArray(storedItems)) {
         const normalized = storedItems.filter((item) => {
           return Boolean(item?.id && item?.text && item?.createdAt);
@@ -154,6 +170,20 @@ const BrainDumpScreen = () => {
     handleRecordPress();
   }, [handleRecordPress, route.params?.autoRecord]);
 
+  const dismissGuide = async () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setShowGuide(false);
+    setGuideDismissed(true);
+    const currentState =
+      (await StorageService.getJSON<Record<string, boolean>>(
+        StorageService.STORAGE_KEYS.firstSuccessGuideState,
+      )) ?? {};
+    await StorageService.setJSON(
+      StorageService.STORAGE_KEYS.firstSuccessGuideState,
+      { ...currentState, brainDumpDismissed: true },
+    );
+  };
+
   const addItem = () => {
     if (input.trim()) {
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -163,7 +193,15 @@ const BrainDumpScreen = () => {
         createdAt: new Date().toISOString(),
         source: 'text',
       };
-      setItems((prevItems) => [newItem, ...prevItems]);
+      setItems((prevItems) => {
+        const next = [newItem, ...prevItems];
+        // Track first item added if guide not dismissed
+        if (!guideDismissed && !showGuide) {
+          UXMetricsService.track('brain_dump_first_item_added');
+          setShowGuide(true);
+        }
+        return next;
+      });
       setInput('');
       setSortedItems([]);
       setSortingError(null);
@@ -172,6 +210,9 @@ const BrainDumpScreen = () => {
 
   // Handle recording toggle
   const handleRecordPress = useCallback(async () => {
+    if (recordingState === 'idle') {
+      previousErrorRef.current = !!recordingError;
+    }
     setRecordingError(null);
 
     if (recordingState === 'idle') {
@@ -199,6 +240,10 @@ const BrainDumpScreen = () => {
       const transcription = await PlaudService.transcribe(result.uri);
 
       if (transcription.success && transcription.transcription) {
+        if (previousErrorRef.current) {
+          UXMetricsService.track('brain_dump_recovery_after_error');
+          previousErrorRef.current = false;
+        }
         LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         const newItem: DumpItem = {
           id: generateId(),
@@ -207,14 +252,21 @@ const BrainDumpScreen = () => {
           source: 'audio',
           audioPath: result.uri,
         };
-        setItems((prevItems) => [newItem, ...prevItems]);
+        setItems((prevItems) => {
+          const next = [newItem, ...prevItems];
+          if (!guideDismissed && !showGuide) {
+            UXMetricsService.track('brain_dump_first_item_added');
+            setShowGuide(true);
+          }
+          return next;
+        });
       } else {
         setRecordingError(transcription.error || 'Transcription failed.');
       }
 
       setRecordingState('idle');
     }
-  }, [recordingState]);
+  }, [guideDismissed, recordingError, recordingState, showGuide]);
 
   const deleteItem = (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -356,6 +408,28 @@ const BrainDumpScreen = () => {
               style={styles.addButton}
             />
           </View>
+
+          {showGuide && (
+            <View style={styles.guideBanner}>
+              <View style={styles.guideContent}>
+                <Text style={styles.guideTitle}>GREAT START.</Text>
+                <Text style={styles.guideText}>
+                  FEELING OVERWHELMED? BREAK IT DOWN IN FOG CUTTER.
+                </Text>
+              </View>
+              <Pressable
+                onPress={dismissGuide}
+                style={({ pressed }) => [
+                  styles.guideButton,
+                  pressed && styles.guideButtonPressed,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss guidance"
+              >
+                <Text style={styles.guideButtonText}>GOT IT</Text>
+              </Pressable>
+            </View>
+          )}
 
           {/* Recording Button */}
           <View style={styles.recordSection}>
@@ -867,6 +941,51 @@ const styles = StyleSheet.create({
     padding: Tokens.spacing[8],
     alignItems: 'center',
     gap: Tokens.spacing[4],
+  },
+  guideBanner: {
+    backgroundColor: '#111111',
+    borderWidth: 1,
+    borderColor: '#CC0000',
+    padding: Tokens.spacing[4],
+    marginBottom: Tokens.spacing[6],
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: Tokens.spacing[4],
+  },
+  guideContent: {
+    flex: 1,
+  },
+  guideTitle: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: '#CC0000',
+    marginBottom: Tokens.spacing[1],
+    letterSpacing: 1,
+  },
+  guideText: {
+    fontFamily: Tokens.type.fontFamily.sans,
+    fontSize: Tokens.type.sm,
+    color: '#FFFFFF',
+    lineHeight: 18,
+  },
+  guideButton: {
+    paddingVertical: Tokens.spacing[2],
+    paddingHorizontal: Tokens.spacing[3],
+    borderWidth: 1,
+    borderColor: '#333333',
+    backgroundColor: '#000000',
+  },
+  guideButtonPressed: {
+    backgroundColor: '#222222',
+  },
+  guideButtonText: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'uppercase',
   },
   loadingText: {
     fontFamily: Tokens.type.fontFamily.mono,

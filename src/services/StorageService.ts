@@ -11,6 +11,8 @@ const STORAGE_KEYS = {
   brainDump: 'brainDump',
   igniteState: 'igniteState',
   pomodoroState: 'pomodoroState',
+  firstSuccessGuideState: 'firstSuccessGuideState',
+  uxMetricsEvents: 'uxMetricsEvents',
   googleTasksSyncState: 'googleTasksSyncState',
   googleTasksProcessedIds: 'googleTasksProcessedIds',
   googleTasksLastSyncAt: 'googleTasksLastSyncAt',
