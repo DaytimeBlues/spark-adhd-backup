@@ -1,5 +1,11 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  SafeAreaView,
+} from 'react-native';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -66,12 +72,15 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
           <View style={styles.content}>
             <Text style={styles.title}>Oops! Something went wrong</Text>
             <Text style={styles.message}>
-              We're sorry for the inconvenience. The app encountered an unexpected error.
+              We're sorry for the inconvenience. The app encountered an
+              unexpected error.
             </Text>
-            
+
             {__DEV__ && this.state.error && (
               <View style={styles.debugContainer}>
-                <Text style={styles.debugTitle}>Debug Info (Development Only):</Text>
+                <Text style={styles.debugTitle}>
+                  Debug Info (Development Only):
+                </Text>
                 <Text style={styles.debugText}>
                   {this.state.error.toString()}
                 </Text>

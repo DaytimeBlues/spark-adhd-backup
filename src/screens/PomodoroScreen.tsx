@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, SafeAreaView, Platform } from 'react-native';
 import SoundService from '../services/SoundService';
 import StorageService from '../services/StorageService';
-import { formatTime } from '../utils/helpers';
+import useTimer from '../hooks/useTimer';
 import { LinearButton } from '../components/ui/LinearButton';
 import { Tokens } from '../theme/tokens';
 
@@ -31,13 +31,35 @@ const PHASE_STYLES = {
 };
 
 const PomodoroScreen = () => {
-  const [isWorking, setIsWorking] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION_SECONDS);
-  const [isRunning, setIsRunning] = useState(false);
-  const [sessions, setSessions] = useState(0);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const isWorkingRef = useRef(isWorking);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    timeLeft,
+    isRunning,
+    formattedTime,
+    start,
+    pause,
+    reset,
+    setTime,
+  } = useTimer({
+    initialTime: FOCUS_DURATION_SECONDS,
+    onComplete: () => {
+      if (isWorkingRef.current) {
+        setSessions((s) => s + 1);
+        setIsWorking(false);
+        isWorkingRef.current = false;
+        SoundService.playCompletionSound();
+        setTime(BREAK_DURATION_SECONDS);
+      } else {
+        setIsWorking(true);
+        isWorkingRef.current = true;
+        SoundService.playNotificationSound();
+        setTime(FOCUS_DURATION_SECONDS);
+      }
+      // Re-start for the next phase
+      setTimeout(() => start(), 0);
+    },
+  });
 
   useEffect(() => {
     isWorkingRef.current = isWorking;
@@ -152,7 +174,7 @@ const PomodoroScreen = () => {
 
         <View style={styles.timerCard}>
           <View style={[styles.phaseIndicator, phaseIndicatorStyle]} />
-          <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+          <Text style={styles.timer}>{formattedTime}</Text>
           <Text style={[styles.phaseText, phaseTextStyle]}>
             {isWorking ? '🔥 FOCUS' : '🌿 REST'}
           </Text>

@@ -114,7 +114,12 @@ const BrainDumpScreen = () => {
       clearTimeout(persistTimerRef.current);
     }
     persistTimerRef.current = setTimeout(() => {
-      StorageService.setJSON(StorageService.STORAGE_KEYS.brainDump, items);
+      StorageService.setJSON(
+        StorageService.STORAGE_KEYS.brainDump,
+        items,
+      ).catch((error) => {
+        console.error('Failed to persist brain dump items:', error);
+      });
     }, PERSIST_DEBOUNCE_MS);
 
     if (items.length !== lastOverlayCountRef.current) {
@@ -286,6 +291,9 @@ const BrainDumpScreen = () => {
       <Text style={styles.itemText}>{item.text}</Text>
       <Pressable
         onPress={() => deleteItem(item.id)}
+        accessibilityRole="button"
+        accessibilityLabel="Delete brain dump item"
+        accessibilityHint="Removes this item from the list"
         style={({
           pressed,
           hovered,
@@ -351,6 +359,13 @@ const BrainDumpScreen = () => {
             <Pressable
               onPress={handleRecordPress}
               disabled={recordingState === 'processing'}
+              accessibilityRole="button"
+              accessibilityLabel={
+                recordingState === 'recording'
+                  ? 'Stop recording'
+                  : 'Start recording'
+              }
+              accessibilityHint="Records voice and converts it to a task item"
               style={({
                 pressed,
                 hovered,
@@ -394,6 +409,9 @@ const BrainDumpScreen = () => {
                 <Pressable
                   onPress={handleAISort}
                   disabled={isSorting}
+                  accessibilityRole="button"
+                  accessibilityLabel="AI sort"
+                  accessibilityHint="Sorts and groups items using AI suggestions"
                   style={({
                     pressed,
                     hovered,
@@ -413,6 +431,9 @@ const BrainDumpScreen = () => {
                 </Pressable>
                 <Pressable
                   onPress={clearAll}
+                  accessibilityRole="button"
+                  accessibilityLabel="Clear all items"
+                  accessibilityHint="Opens a confirmation to remove all items"
                   style={({
                     pressed,
                     hovered,

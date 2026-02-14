@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState, memo } from 'react';
 import {
   Animated,
   AnimatedStyleProp,
@@ -41,7 +41,7 @@ const CARD_MIN_HEIGHT = 140;
 const DOT_SIZE = 4; // Smaller, sharper dots
 const ICON_SIZE = 28;
 
-export default function ModeCard({
+function ModeCardComponent({
   mode,
   onPress,
   style,
@@ -70,10 +70,10 @@ export default function ModeCard({
         }
       : undefined;
 
-  const handlePress = () => {
+  const handlePress = useCallback(() => {
     HapticsService.tap({ key: 'modeCard' });
     onPress();
-  };
+  }, [onPress]);
 
   return (
     <Animated.View style={[animatedStyle, style]}>
@@ -205,3 +205,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
+
+// Memoize for performance - prevents unnecessary re-renders
+export default memo(ModeCardComponent);

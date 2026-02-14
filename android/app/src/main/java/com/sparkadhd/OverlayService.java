@@ -1,17 +1,23 @@
 package com.sparkadhd;
 
 import android.animation.ObjectAnimator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.IBinder;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -27,6 +33,7 @@ import androidx.core.app.NotificationCompat;
 public class OverlayService extends Service {
   private static final String CHANNEL_ID = "spark_overlay";
   private static final int NOTIFICATION_ID = 1001;
+  private static final String ACTION_STOP_OVERLAY = "com.sparkadhd.action.STOP_OVERLAY";
   private static final String PREFS_NAME = "spark_overlay_prefs";
   private static final String KEY_LAST_COUNT = "last_count";
   private static final String KEY_BUBBLE_X = "bubble_x";
@@ -34,6 +41,8 @@ public class OverlayService extends Service {
   private static final int DRAG_THRESHOLD_DP = 6;
   private static final int MENU_OPEN_TRANSLATION_DP = 16;
   private static final int MENU_ANIMATION_DURATION_MS = 160;
+  private static final long DRAG_UPDATE_INTERVAL_MS = 16L;
+  private static final long HAPTIC_MIN_INTERVAL_MS = 160L;
 
   private static OverlayService instance;
 
@@ -46,6 +55,7 @@ public class OverlayService extends Service {
   private WindowManager.LayoutParams menuParams;
   private WindowManager.LayoutParams scrimParams;
   private boolean expanded;
+  private long lastHapticAtMs;
 
   public static OverlayService getInstance() {
     return instance;
@@ -68,12 +78,17 @@ public class OverlayService extends Service {
 
   @Override
   public int onStartCommand(Intent intent, int flags, int startId) {
+    if (intent != null && ACTION_STOP_OVERLAY.equals(intent.getAction())) {
+      stopSelf();
+      return START_NOT_STICKY;
+    }
     return START_STICKY;
   }
 
   @Override
   public void onDestroy() {
     super.onDestroy();
+    stopForeground(true);
     collapseMenu();
     removeViewIfAttached(menuView);
     removeViewIfAttached(scrimView);
@@ -134,6 +149,10 @@ public class OverlayService extends Service {
     bubbleParams.y = preferences.getInt(KEY_BUBBLE_Y, dpToPx(120));
     clampBubblePosition(size);
     bubbleView.setOnTouchListener(new BubbleTouchListener());
+
+    if (isViewAttached(bubbleView)) {
+      return;
+    }
 
     try {
       windowManager.addView(bubbleView, bubbleParams);
@@ -403,8 +422,13 @@ public class OverlayService extends Service {
       bubbleParams.x = (int) valueAnimator.getAnimatedValue();
       windowManager.updateViewLayout(bubbleView, bubbleParams);
     });
+    animator.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd(android.animation.Animator animation) {
+        persistBubblePosition();
+      }
+    });
     animator.start();
-    persistBubblePosition();
   }
 
   private Notification createNotification() {
@@ -418,11 +442,21 @@ public class OverlayService extends Service {
       manager.createNotificationChannel(channel);
     }
 
+    Intent stopIntent = new Intent(this, OverlayService.class);
+    stopIntent.setAction(ACTION_STOP_OVERLAY);
+    PendingIntent stopPendingIntent = PendingIntent.getService(
+      this,
+      0,
+      stopIntent,
+      PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+    );
+
     return new NotificationCompat.Builder(this, CHANNEL_ID)
       .setContentTitle("Spark tasks")
       .setContentText("Bubble is running")
       .setSmallIcon(android.R.drawable.ic_dialog_info)
       .setOngoing(true)
+      .addAction(0, "Stop", stopPendingIntent)
       .build();
   }
 
@@ -431,24 +465,106 @@ public class OverlayService extends Service {
     return Math.round(dp * density);
   }
 
+  /**
+   * Trigger haptic feedback for touch interactions
+   * Uses the device's vibrator with appropriate effect based on Android version
+   */
+  private void performHapticFeedback() {
+    long now = System.currentTimeMillis();
+    if (now - lastHapticAtMs < HAPTIC_MIN_INTERVAL_MS) {
+      return;
+    }
+    lastHapticAtMs = now;
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        VibratorManager vibratorManager = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+        if (vibratorManager != null) {
+          Vibrator vibrator = vibratorManager.getDefaultVibrator();
+          if (vibrator != null && vibrator.hasVibrator()) {
+            // Use amplitude for finer control on Android 12+
+            vibrator.vibrate(VibrationEffect.createOneShot(8, VibrationEffect.DEFAULT_AMPLITUDE));
+          }
+        }
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        @SuppressWarnings("deprecation")
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+          vibrator.vibrate(VibrationEffect.createOneShot(8, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+      } else {
+        @SuppressWarnings("deprecation")
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+          vibrator.vibrate(8);
+        }
+      }
+    } catch (Exception ignored) {
+      // Silently fail if haptics not available
+    }
+  }
+
+  /**
+   * Trigger heavier haptic for menu expansion
+   */
+  private void performMenuHapticFeedback() {
+    long now = System.currentTimeMillis();
+    if (now - lastHapticAtMs < HAPTIC_MIN_INTERVAL_MS) {
+      return;
+    }
+    lastHapticAtMs = now;
+    try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        VibratorManager vibratorManager = (VibratorManager) getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+        if (vibratorManager != null) {
+          Vibrator vibrator = vibratorManager.getDefaultVibrator();
+          if (vibrator != null && vibrator.hasVibrator()) {
+            vibrator.vibrate(VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE));
+          }
+        }
+      } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        @SuppressWarnings("deprecation")
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+          vibrator.vibrate(VibrationEffect.createOneShot(15, VibrationEffect.DEFAULT_AMPLITUDE));
+        }
+      } else {
+        @SuppressWarnings("deprecation")
+        Vibrator vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+        if (vibrator != null && vibrator.hasVibrator()) {
+          vibrator.vibrate(15);
+        }
+      }
+    } catch (Exception ignored) {
+      // Silently fail if haptics not available
+    }
+  }
+
   private class BubbleTouchListener implements View.OnTouchListener {
     private int initialX;
     private int initialY;
     private float initialTouchX;
     private float initialTouchY;
     private boolean moved;
+    private long lastDragUpdateAtMs;
 
     @Override
     public boolean onTouch(View view, MotionEvent event) {
       switch (event.getAction()) {
         case MotionEvent.ACTION_DOWN:
           moved = false;
+          lastDragUpdateAtMs = 0L;
           initialX = bubbleParams.x;
           initialY = bubbleParams.y;
           initialTouchX = event.getRawX();
           initialTouchY = event.getRawY();
+          performHapticFeedback(); // Light haptic on touch down
           return true;
         case MotionEvent.ACTION_MOVE:
+          long now = System.currentTimeMillis();
+          if (now - lastDragUpdateAtMs < DRAG_UPDATE_INTERVAL_MS) {
+            return true;
+          }
+          lastDragUpdateAtMs = now;
           bubbleParams.x = initialX + (int) (event.getRawX() - initialTouchX);
           bubbleParams.y = initialY + (int) (event.getRawY() - initialTouchY);
           int bubbleSize = bubbleView != null && bubbleView.getWidth() > 0 ? bubbleView.getWidth() : dpToPx(56);
@@ -464,10 +580,10 @@ public class OverlayService extends Service {
           return true;
         case MotionEvent.ACTION_UP:
           if (!moved) {
+            performMenuHapticFeedback(); // Heavier haptic on tap
             toggleExpanded();
           } else {
             snapBubbleToNearestEdge();
-            persistBubblePosition();
           }
           return true;
         case MotionEvent.ACTION_CANCEL:

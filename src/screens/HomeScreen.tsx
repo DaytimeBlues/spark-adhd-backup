@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   View,
   Text,
@@ -12,6 +18,7 @@ import {
   useWindowDimensions,
   AppState,
   AppStateStatus,
+  AccessibilityInfo,
 } from 'react-native';
 import OverlayService from '../services/OverlayService';
 import StorageService from '../services/StorageService';
@@ -38,6 +45,8 @@ type NavigationNode = {
 const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
   const [streak, setStreak] = useState(0);
   const [isOverlayEnabled, setIsOverlayEnabled] = useState(false);
+  const [isOverlayPermissionRequesting, setIsOverlayPermissionRequesting] =
+    useState(false);
   const { width } = useWindowDimensions();
 
   const isWeb = Platform.OS === 'web';
@@ -96,6 +105,35 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     modes.map(() => new Animated.Value(ENTRANCE_OFFSET_Y)),
   ).current;
 
+  const checkOverlayPermission = useCallback(async () => {
+    if (Platform.OS === 'android') {
+      const hasPermission = await OverlayService.canDrawOverlays();
+      setIsOverlayEnabled(hasPermission);
+    }
+  }, []);
+
+  const startOverlayWithLatestCount = useCallback(async () => {
+    const taskItems =
+      (await StorageService.getJSON<Array<{ id: string }>>(
+        StorageService.STORAGE_KEYS.brainDump,
+      )) || [];
+    OverlayService.updateCount(taskItems.length);
+    OverlayService.startOverlay();
+    setIsOverlayEnabled(true);
+  }, []);
+
+  const loadStreak = useCallback(async () => {
+    try {
+      const streakCount = await StorageService.get(
+        StorageService.STORAGE_KEYS.streakCount,
+      );
+      const parsed = streakCount ? parseInt(streakCount, 10) : 0;
+      setStreak(Number.isNaN(parsed) ? 0 : parsed);
+    } catch (error) {
+      console.error('Error loading streak:', error);
+    }
+  }, []);
+
   useEffect(() => {
     loadStreak();
     checkOverlayPermission();
@@ -118,14 +156,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     });
 
     Animated.stagger(ANIMATION_STAGGER, animations).start();
-  }, [fadeAnims, modes, slideAnims]);
-
-  const checkOverlayPermission = async () => {
-    if (Platform.OS === 'android') {
-      const hasPermission = await OverlayService.canDrawOverlays();
-      setIsOverlayEnabled(hasPermission);
-    }
-  };
+  }, [checkOverlayPermission, fadeAnims, loadStreak, modes, slideAnims]);
 
   useEffect(() => {
     if (Platform.OS !== 'android') {
@@ -144,96 +175,139 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     return () => {
       appStateSubscription.remove();
     };
-  }, []);
+  }, [checkOverlayPermission]);
 
-  const toggleOverlay = async (value: boolean) => {
+  useEffect(() => {
     if (Platform.OS !== 'android') {
       return;
     }
 
-    try {
-      if (value) {
-        const hasPermission = await OverlayService.canDrawOverlays();
-        if (hasPermission) {
-          const taskItems =
-            (await StorageService.getJSON<Array<{ id: string }>>(
-              StorageService.STORAGE_KEYS.brainDump,
-            )) || [];
-          OverlayService.updateCount(taskItems.length);
-          OverlayService.startOverlay();
-          setIsOverlayEnabled(true);
+    const unsubscribePermissionRequested = OverlayService.addEventListener(
+      'overlay_permission_requested',
+      () => {
+        setIsOverlayPermissionRequesting(true);
+        AccessibilityInfo.announceForAccessibility(
+          'Overlay permission request started',
+        );
+      },
+    );
+
+    const unsubscribePermissionResult = OverlayService.addEventListener(
+      'overlay_permission_result',
+      ({ granted }) => {
+        setIsOverlayPermissionRequesting(false);
+        AccessibilityInfo.announceForAccessibility(
+          granted ? 'Overlay permission granted' : 'Overlay permission denied',
+        );
+      },
+    );
+
+    const unsubscribePermissionTimeout = OverlayService.addEventListener(
+      'overlay_permission_timeout',
+      () => {
+        setIsOverlayPermissionRequesting(false);
+        AccessibilityInfo.announceForAccessibility(
+          'Overlay permission request timed out',
+        );
+      },
+    );
+
+    const unsubscribePermissionError = OverlayService.addEventListener(
+      'overlay_permission_error',
+      () => {
+        setIsOverlayPermissionRequesting(false);
+        AccessibilityInfo.announceForAccessibility(
+          'Overlay permission request failed',
+        );
+      },
+    );
+
+    return () => {
+      unsubscribePermissionRequested?.();
+      unsubscribePermissionResult?.();
+      unsubscribePermissionTimeout?.();
+      unsubscribePermissionError?.();
+    };
+  }, []);
+
+  const toggleOverlay = useCallback(
+    async (value: boolean) => {
+      if (Platform.OS !== 'android') {
+        return;
+      }
+
+      try {
+        if (value) {
+          setIsOverlayPermissionRequesting(true);
+          const hasPermission = await OverlayService.canDrawOverlays();
+          if (hasPermission) {
+            setIsOverlayPermissionRequesting(false);
+            await startOverlayWithLatestCount();
+            return;
+          }
+
+          const granted = await OverlayService.requestOverlayPermission();
+          const hasPermissionAfterRequest =
+            granted || (await OverlayService.canDrawOverlays());
+
+          if (hasPermissionAfterRequest) {
+            setIsOverlayPermissionRequesting(false);
+            await startOverlayWithLatestCount();
+            return;
+          }
+
+          setIsOverlayPermissionRequesting(false);
+          setIsOverlayEnabled(false);
           return;
         }
 
-        const granted = await OverlayService.requestOverlayPermission();
-        const hasPermissionAfterRequest =
-          granted || (await OverlayService.canDrawOverlays());
-
-        if (hasPermissionAfterRequest) {
-          const taskItems =
-            (await StorageService.getJSON<Array<{ id: string }>>(
-              StorageService.STORAGE_KEYS.brainDump,
-            )) || [];
-          OverlayService.updateCount(taskItems.length);
-          OverlayService.startOverlay();
-          setIsOverlayEnabled(true);
-          return;
-        }
-
+        OverlayService.stopOverlay();
         setIsOverlayEnabled(false);
-        return;
+      } catch (error) {
+        console.error('Failed to toggle overlay:', error);
+        setIsOverlayPermissionRequesting(false);
+        setIsOverlayEnabled(false);
+      }
+    },
+    [startOverlayWithLatestCount],
+  );
+
+  const navigateByRouteName = useCallback(
+    (routeName: string) => {
+      let currentNavigator: NavigationNode | undefined = navigation;
+
+      while (currentNavigator) {
+        const routeNames = currentNavigator.getState?.()?.routeNames;
+        if (Array.isArray(routeNames) && routeNames.includes(routeName)) {
+          currentNavigator.navigate(routeName);
+          return;
+        }
+        currentNavigator = currentNavigator.getParent?.();
       }
 
-      OverlayService.stopOverlay();
-      setIsOverlayEnabled(false);
-    } catch (error) {
-      console.error('Failed to toggle overlay:', error);
-      setIsOverlayEnabled(false);
-    }
-  };
+      navigation.navigate(routeName);
+    },
+    [navigation],
+  );
 
-  const loadStreak = async () => {
-    try {
-      const streakCount = await StorageService.get(
-        StorageService.STORAGE_KEYS.streakCount,
-      );
-      const parsed = streakCount ? parseInt(streakCount, 10) : 0;
-      setStreak(Number.isNaN(parsed) ? 0 : parsed);
-    } catch (error) {
-      console.error('Error loading streak:', error);
-    }
-  };
-
-  const navigateByRouteName = (routeName: string) => {
-    let currentNavigator: NavigationNode | undefined = navigation;
-
-    while (currentNavigator) {
-      const routeNames = currentNavigator.getState?.()?.routeNames;
-      if (Array.isArray(routeNames) && routeNames.includes(routeName)) {
-        currentNavigator.navigate(routeName);
-        return;
-      }
-      currentNavigator = currentNavigator.getParent?.();
-    }
-
-    navigation.navigate(routeName);
-  };
-
-  const handlePress = (modeId: string) => {
-    if (modeId === 'checkin') {
-      navigateByRouteName(ROUTES.CHECK_IN);
-    } else if (modeId === 'cbtguide') {
-      navigateByRouteName(ROUTES.CBT_GUIDE);
-    } else if (modeId === 'fogcutter') {
-      navigateByRouteName(ROUTES.FOG_CUTTER);
-    } else if (modeId === 'pomodoro') {
-      navigateByRouteName(ROUTES.POMODORO);
-    } else if (modeId === 'anchor') {
-      navigateByRouteName(ROUTES.ANCHOR);
-    } else {
-      navigateByRouteName(ROUTES.FOCUS);
-    } // ignite -> Focus
-  };
+  const handlePress = useCallback(
+    (modeId: string) => {
+      if (modeId === 'checkin') {
+        navigateByRouteName(ROUTES.CHECK_IN);
+      } else if (modeId === 'cbtguide') {
+        navigateByRouteName(ROUTES.CBT_GUIDE);
+      } else if (modeId === 'fogcutter') {
+        navigateByRouteName(ROUTES.FOG_CUTTER);
+      } else if (modeId === 'pomodoro') {
+        navigateByRouteName(ROUTES.POMODORO);
+      } else if (modeId === 'anchor') {
+        navigateByRouteName(ROUTES.ANCHOR);
+      } else {
+        navigateByRouteName(ROUTES.FOCUS);
+      } // ignite -> Focus
+    },
+    [navigateByRouteName],
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -284,10 +358,13 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                     styles.overlayStatus,
                     isOverlayEnabled && styles.overlayStatusActive,
                   ]}
+                  accessibilityLiveRegion="polite"
                 >
-                  {isOverlayEnabled
-                    ? 'ACTIVE • FLOATING OVER APPS'
-                    : 'REQUIRES PERMISSION'}
+                  {isOverlayPermissionRequesting
+                    ? 'REQUESTING PERMISSION...'
+                    : isOverlayEnabled
+                      ? 'ACTIVE • FLOATING OVER APPS'
+                      : 'REQUIRES PERMISSION'}
                 </Text>
               </View>
               <View style={styles.overlaySwitchHitTarget}>
@@ -295,7 +372,11 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                   testID="home-overlay-toggle"
                   accessibilityRole="switch"
                   accessibilityLabel="home-overlay-toggle"
-                  accessibilityState={{ checked: isOverlayEnabled }}
+                  accessibilityState={{
+                    checked: isOverlayEnabled,
+                    busy: isOverlayPermissionRequesting,
+                    disabled: isOverlayPermissionRequesting,
+                  }}
                   trackColor={{
                     false: Tokens.colors.neutral[600],
                     true: Tokens.colors.brand[500],
@@ -303,6 +384,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                   thumbColor={Tokens.colors.neutral[0]}
                   ios_backgroundColor={Tokens.colors.neutral[700]}
                   onValueChange={toggleOverlay}
+                  disabled={isOverlayPermissionRequesting}
                   value={isOverlayEnabled}
                 />
               </View>

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import SoundService from '../services/SoundService';
 import StorageService from '../services/StorageService';
-import { formatTime } from '../utils/helpers';
+import useTimer from '../hooks/useTimer';
 import { Tokens } from '../theme/tokens';
 import { LinearButton } from '../components/ui/LinearButton';
 
@@ -20,11 +20,23 @@ const IGNITE_DURATION_SECONDS = 5 * 60;
 const PERSIST_INTERVAL_MS = 5000;
 
 const IgniteScreen = () => {
-  const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(IGNITE_DURATION_SECONDS);
   const [isPlaying, setIsPlaying] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    timeLeft,
+    isRunning,
+    formattedTime,
+    start,
+    pause,
+    reset,
+    setTime,
+  } = useTimer({
+    initialTime: IGNITE_DURATION_SECONDS,
+    onComplete: () => {
+      SoundService.playCompletionSound();
+    },
+  });
 
   useEffect(() => {
     SoundService.initBrownNoise();
@@ -39,7 +51,7 @@ const IgniteScreen = () => {
       }
 
       if (typeof storedState.timeLeft === 'number') {
-        setTimeLeft(storedState.timeLeft);
+        setTime(storedState.timeLeft);
       }
 
       if (storedState.isPlaying) {
@@ -51,14 +63,10 @@ const IgniteScreen = () => {
     loadState();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-
       SoundService.stopBrownNoise();
       SoundService.releaseBrownNoise();
     };
-  }, []);
+  }, [setTime]);
 
   useEffect(() => {
     if (persistTimerRef.current) {
@@ -80,36 +88,16 @@ const IgniteScreen = () => {
   }, [timeLeft, isPlaying]);
 
   const startTimer = () => {
-    setIsRunning(true);
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          setIsRunning(false);
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-          }
-          SoundService.playCompletionSound();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    start();
   };
 
   const pauseTimer = () => {
-    setIsRunning(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    pause();
   };
 
   const resetTimer = () => {
-    setIsRunning(false);
-    setTimeLeft(IGNITE_DURATION_SECONDS);
+    reset();
     setIsPlaying(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
     SoundService.pauseBrownNoise();
   };
 
@@ -135,7 +123,7 @@ const IgniteScreen = () => {
           </View>
 
           <View style={styles.timerCard}>
-            <Text style={styles.timer}>{formatTime(timeLeft)}</Text>
+            <Text style={styles.timer}>{formattedTime}</Text>
             <Text style={styles.status}>
               {isRunning ? '🔥 FOCUS MODE' : 'READY TO IGNITE?'}
             </Text>
@@ -175,11 +163,11 @@ const IgniteScreen = () => {
               pressed: boolean;
               hovered?: boolean;
             }) => [
-              styles.soundToggle,
-              isPlaying ? styles.soundToggleActive : styles.soundToggleInactive,
-              hovered && styles.soundToggleHovered,
-              pressed && styles.soundTogglePressed,
-            ]}
+                styles.soundToggle,
+                isPlaying ? styles.soundToggleActive : styles.soundToggleInactive,
+                hovered && styles.soundToggleHovered,
+                pressed && styles.soundTogglePressed,
+              ]}
             onPress={toggleSound}
           >
             <Text style={styles.soundIcon}>{isPlaying ? '🔊' : '🔇'}</Text>
