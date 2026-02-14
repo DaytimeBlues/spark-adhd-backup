@@ -31,6 +31,9 @@ const PHASE_STYLES = {
 };
 
 const PomodoroScreen = () => {
+  const [isWorking, setIsWorking] = useState(true);
+  const [sessions, setSessions] = useState(0);
+  const isWorkingRef = useRef(isWorking);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -89,13 +92,7 @@ const PomodoroScreen = () => {
     };
 
     loadState();
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, []);
+  }, [setTime]);
 
   useEffect(() => {
     if (persistTimerRef.current) {
@@ -118,40 +115,18 @@ const PomodoroScreen = () => {
   }, [isWorking, timeLeft, sessions]);
 
   const startTimer = () => {
-    setIsRunning(true);
-    intervalRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (isWorkingRef.current) {
-            setSessions((s) => s + 1);
-            setIsWorking(false);
-            SoundService.playCompletionSound();
-            return BREAK_DURATION_SECONDS;
-          } else {
-            setIsWorking(true);
-            SoundService.playNotificationSound();
-            return FOCUS_DURATION_SECONDS;
-          }
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    start();
   };
 
   const pauseTimer = () => {
-    setIsRunning(false);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    pause();
   };
 
   const resetTimer = () => {
-    setIsRunning(false);
+    reset();
     setIsWorking(true);
-    setTimeLeft(FOCUS_DURATION_SECONDS);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    isWorkingRef.current = true;
+    setTime(FOCUS_DURATION_SECONDS);
   };
 
   const phaseIndicatorStyle = isWorking

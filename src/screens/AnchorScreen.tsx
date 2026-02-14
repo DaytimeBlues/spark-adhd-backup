@@ -10,6 +10,7 @@ import {
   UIManager,
 } from 'react-native';
 import { LinearButton } from '../components/ui/LinearButton';
+import useTimer from '../hooks/useTimer';
 import { Tokens } from '../theme/tokens';
 
 type BreathingPattern = '478' | 'box' | 'energize';
@@ -33,14 +34,50 @@ const AnchorScreen = () => {
   const [phase, setPhase] = useState<'inhale' | 'hold' | 'exhale' | 'wait'>(
     'inhale',
   );
-  const [count, setCount] = useState(4);
-  const [isActive, setIsActive] = useState(false);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const phaseRef = useRef<'inhale' | 'hold' | 'exhale' | 'wait'>('inhale');
+  const patternRef = useRef<BreathingPattern | null>(null);
+
+  const {
+    timeLeft: count,
+    isRunning: isActive,
+    start,
+    pause,
+    reset,
+    setTime,
+  } = useTimer({
+    initialTime: 4,
+    onComplete: () => {
+      if (!patternRef.current) return;
+      const p = PATTERNS[patternRef.current];
+      const phases: Record<
+        'inhale' | 'hold' | 'exhale' | 'wait',
+        'inhale' | 'hold' | 'exhale' | 'wait'
+      > = {
+        inhale: p.hold > 0 ? 'hold' : 'exhale',
+        hold: 'exhale',
+        exhale: p.wait > 0 ? 'wait' : 'inhale',
+        wait: 'inhale',
+      };
+      const currentPhase = phaseRef.current;
+      const nextPhase = phases[currentPhase];
+
+      // Animate transition on native
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setPhase(nextPhase);
+      phaseRef.current = nextPhase;
+      setTime(p[nextPhase] || p.inhale);
+      // Re-start for the next phase
+      setTimeout(() => start(), 0);
+    },
+  });
 
   useEffect(() => {
     phaseRef.current = phase;
   }, [phase]);
+
+  useEffect(() => {
+    patternRef.current = pattern;
+  }, [pattern]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -50,59 +87,21 @@ const AnchorScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    if (isActive && pattern) {
-      const p = PATTERNS[pattern];
-      intervalRef.current = setInterval(() => {
-        setCount((prev) => {
-          if (prev <= 1) {
-            const phases: Record<
-              'inhale' | 'hold' | 'exhale' | 'wait',
-              'inhale' | 'hold' | 'exhale' | 'wait'
-            > = {
-              inhale: p.hold > 0 ? 'hold' : 'exhale',
-              hold: 'exhale',
-              exhale: p.wait > 0 ? 'wait' : 'inhale',
-              wait: 'inhale',
-            };
-            const currentPhase = phaseRef.current;
-            const nextPhase = phases[currentPhase];
-
-            // Animate transition on native
-            LayoutAnimation.configureNext(
-              LayoutAnimation.Presets.easeInEaseOut,
-            );
-            setPhase(nextPhase);
-            phaseRef.current = nextPhase;
-            return p[nextPhase] || p.inhale;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [isActive, pattern]);
-
   const startPattern = (selectedPattern: BreathingPattern) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPattern(selectedPattern);
+    patternRef.current = selectedPattern;
     setPhase('inhale');
     phaseRef.current = 'inhale';
-    setCount(PATTERNS[selectedPattern].inhale);
-    setIsActive(true);
+    setTime(PATTERNS[selectedPattern].inhale);
+    start();
   };
 
   const stopPattern = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsActive(false);
+    reset();
     setPattern(null);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    patternRef.current = null;
   };
 
   const getPhaseText = () => {
@@ -185,10 +184,10 @@ const AnchorScreen = () => {
                     pressed: boolean;
                     hovered?: boolean;
                   }) => [
-                    styles.patternButton,
-                    hovered && styles.patternButtonHovered,
-                    pressed && styles.patternButtonPressed,
-                  ]}
+                      styles.patternButton,
+                      hovered && styles.patternButtonHovered,
+                      pressed && styles.patternButtonPressed,
+                    ]}
                   onPress={() => startPattern(p)}
                 >
                   <View style={styles.patternIcon}>
