@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
-import { Platform } from 'react-native';
+import { Platform, Share } from 'react-native';
 import HomeScreen from '../src/screens/HomeScreen';
 
 const overlayListeners: Record<string, (() => void)[]> = {};
@@ -61,6 +61,10 @@ describe('HomeScreen', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.spyOn(Share, 'share').mockResolvedValue({
+      action: 'sharedAction',
+      activityType: null,
+    });
     Object.keys(overlayListeners).forEach((key) => {
       delete overlayListeners[key];
     });
@@ -112,5 +116,8 @@ describe('HomeScreen', () => {
 
     expect(screen.getByText('OVERLAY EVENT LOG (DEV)')).toBeTruthy();
     expect(screen.getByText(/Permission requested/i)).toBeTruthy();
+
+    fireEvent.press(screen.getByText('COPY DIAGNOSTICS'));
+    expect(Share.share).toHaveBeenCalled();
   });
 });

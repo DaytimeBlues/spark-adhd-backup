@@ -19,6 +19,9 @@ import {
   AppState,
   AppStateStatus,
   AccessibilityInfo,
+  TouchableOpacity,
+  NativeModules,
+  Share,
 } from 'react-native';
 import OverlayService from '../services/OverlayService';
 import StorageService from '../services/StorageService';
@@ -55,6 +58,53 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     useState(false);
   const [overlayEvents, setOverlayEvents] = useState<OverlayEvent[]>([]);
   const { width } = useWindowDimensions();
+
+  const handleCopyDiagnostics = useCallback(async () => {
+    if (!__DEV__) {
+      return;
+    }
+
+    const diagnostics = [
+      `overlay_enabled=${isOverlayEnabled ? 'yes' : 'no'}`,
+      `permission_requesting=${isOverlayPermissionRequesting ? 'yes' : 'no'}`,
+      ...overlayEvents.map((event) => {
+        return `${new Date(event.timestamp).toISOString()} ${event.label}`;
+      }),
+    ].join('\n');
+
+    try {
+      const clipboardModule = NativeModules.Clipboard as
+        | { setString?: (value: string) => void }
+        | undefined;
+
+      if (clipboardModule?.setString) {
+        clipboardModule.setString(diagnostics);
+        addOverlayEvent('Diagnostics copied');
+        AccessibilityInfo.announceForAccessibility(
+          'Overlay diagnostics copied to clipboard',
+        );
+        return;
+      }
+
+      await Share.share({
+        title: 'Overlay diagnostics',
+        message: diagnostics,
+      });
+      addOverlayEvent('Diagnostics shared');
+      AccessibilityInfo.announceForAccessibility('Overlay diagnostics shared');
+    } catch (error) {
+      console.warn('Failed to export diagnostics:', error);
+      addOverlayEvent('Diagnostics export failed');
+      AccessibilityInfo.announceForAccessibility(
+        'Overlay diagnostics export failed',
+      );
+    }
+  }, [
+    addOverlayEvent,
+    isOverlayEnabled,
+    isOverlayPermissionRequesting,
+    overlayEvents,
+  ]);
 
   const addOverlayEvent = useCallback((label: string) => {
     if (!__DEV__) {
@@ -438,6 +488,15 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                   </Text>
                 ))
               )}
+              <TouchableOpacity
+                onPress={handleCopyDiagnostics}
+                style={styles.debugButton}
+                accessibilityRole="button"
+                accessibilityLabel="Copy Diagnostics"
+                accessibilityHint="Exports overlay event logs and diagnostic data"
+              >
+                <Text style={styles.debugButtonText}>COPY DIAGNOSTICS</Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -604,6 +663,25 @@ const styles = StyleSheet.create({
   },
   debugTime: {
     color: Tokens.colors.text.tertiary,
+  },
+  debugButton: {
+    marginTop: Tokens.spacing[4],
+    paddingVertical: Tokens.spacing[2],
+    paddingHorizontal: Tokens.spacing[3],
+    backgroundColor: Tokens.colors.neutral.dark,
+    borderWidth: 1,
+    borderColor: Tokens.colors.neutral.border,
+    borderRadius: Tokens.radii.none,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  debugButtonText: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: Tokens.colors.text.primary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 
