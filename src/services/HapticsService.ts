@@ -1,23 +1,34 @@
 import { Platform, Vibration } from 'react-native';
 
 const TAP_DURATION_MS = 8;
-const MIN_INTERVAL_MS = 40;
+const MIN_INTERVAL_MS = 100;
+
+type TapOptions = {
+  key?: string;
+  minIntervalMs?: number;
+  durationMs?: number;
+};
 
 class HapticsService {
-  private lastTapAt = 0;
+  private lastTapAtByKey: Record<string, number> = {};
 
-  tap(): void {
+  tap(options?: TapOptions): void {
     if (Platform.OS === 'web') {
       return;
     }
 
+    const key = options?.key ?? 'global';
+    const minIntervalMs = options?.minIntervalMs ?? MIN_INTERVAL_MS;
+    const durationMs = options?.durationMs ?? TAP_DURATION_MS;
     const now = Date.now();
-    if (now - this.lastTapAt < MIN_INTERVAL_MS) {
+    const lastTapAt = this.lastTapAtByKey[key] ?? 0;
+
+    if (now - lastTapAt < minIntervalMs) {
       return;
     }
 
-    this.lastTapAt = now;
-    Vibration.vibrate(TAP_DURATION_MS);
+    this.lastTapAtByKey[key] = now;
+    Vibration.vibrate(durationMs);
   }
 }
 

@@ -16,21 +16,22 @@ const ALLOWED_OVERLAY_ROUTES = new Set<string>([
 
 export const navigationRef = createNavigationContainerRef();
 
-export function handleOverlayIntent(payload: OverlayIntentPayload): void {
+export function handleOverlayIntent(payload: OverlayIntentPayload): boolean {
   if (!navigationRef.isReady() || !payload.route) {
-    return;
+    return false;
   }
 
   if (!ALLOWED_OVERLAY_ROUTES.has(payload.route)) {
-    return;
+    return false;
   }
 
   if (payload.route === ROUTES.TASKS) {
     navigationRef.navigate(ROUTES.TASKS, {
       autoRecord: payload.autoRecord === true,
     });
-    return;
+    return true;
   }
 
   navigationRef.navigate(payload.route as never);
+  return true;
 }

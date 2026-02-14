@@ -62,7 +62,7 @@ export const WebNavBar = ({ state, navigation }: BottomTabBarProps) => {
           const isFocused = state.index === index;
 
           const onPress = () => {
-            HapticsService.tap();
+            HapticsService.tap({ key: 'navTab', minIntervalMs: 140 });
             const event = navigation.emit({
               type: 'tabPress',
               target: route.key,
@@ -86,7 +86,9 @@ export const WebNavBar = ({ state, navigation }: BottomTabBarProps) => {
                 paddingHorizontal: Tokens.spacing[2],
                 backgroundColor: 'transparent', // No background pill
                 borderBottomWidth: 2,
-                borderBottomColor: isFocused ? Tokens.colors.indigo.primary : 'transparent',
+                borderBottomColor: isFocused
+                  ? Tokens.colors.indigo.primary
+                  : 'transparent',
                 opacity: pressed ? 0.7 : 1,
                 ...Platform.select({
                   web: {

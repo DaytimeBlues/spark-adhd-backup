@@ -1,6 +1,7 @@
 package com.sparkadhd;
 
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,6 +19,7 @@ import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
@@ -27,6 +29,11 @@ public class OverlayService extends Service {
   private static final int NOTIFICATION_ID = 1001;
   private static final String PREFS_NAME = "spark_overlay_prefs";
   private static final String KEY_LAST_COUNT = "last_count";
+  private static final String KEY_BUBBLE_X = "bubble_x";
+  private static final String KEY_BUBBLE_Y = "bubble_y";
+  private static final int DRAG_THRESHOLD_DP = 6;
+  private static final int MENU_OPEN_TRANSLATION_DP = 16;
+  private static final int MENU_ANIMATION_DURATION_MS = 160;
 
   private static OverlayService instance;
 
@@ -68,9 +75,13 @@ public class OverlayService extends Service {
   public void onDestroy() {
     super.onDestroy();
     collapseMenu();
+    removeViewIfAttached(menuView);
+    removeViewIfAttached(scrimView);
     removeViewIfAttached(bubbleView);
     bubbleView = null;
     countView = null;
+    menuView = null;
+    scrimView = null;
     instance = null;
   }
 
@@ -118,8 +129,10 @@ public class OverlayService extends Service {
       PixelFormat.TRANSLUCENT
     );
     bubbleParams.gravity = Gravity.TOP | Gravity.START;
-    bubbleParams.x = dpToPx(16);
-    bubbleParams.y = dpToPx(120);
+    SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+    bubbleParams.x = preferences.getInt(KEY_BUBBLE_X, dpToPx(16));
+    bubbleParams.y = preferences.getInt(KEY_BUBBLE_Y, dpToPx(120));
+    clampBubblePosition(size);
     bubbleView.setOnTouchListener(new BubbleTouchListener());
 
     try {
@@ -138,11 +151,58 @@ public class OverlayService extends Service {
   }
 
   private void expandMenu() {
+    if (expanded) {
+      return;
+    }
+
+    expanded = true;
+    addScrim();
+    ensureMenuView();
+
+    if (isViewAttached(menuView)) {
+      return;
+    }
+
+    if (menuParams == null) {
+      menuParams = new WindowManager.LayoutParams(
+        dpToPx(220),
+        WindowManager.LayoutParams.WRAP_CONTENT,
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+          ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+          : WindowManager.LayoutParams.TYPE_PHONE,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+        PixelFormat.TRANSLUCENT
+      );
+    }
+
+    menuParams.gravity = Gravity.TOP | Gravity.START;
+    menuParams.x = bubbleParams.x;
+    menuParams.y = Math.max(dpToPx(16), bubbleParams.y - dpToPx(260));
+    clampMenuPosition();
+
+    try {
+      windowManager.addView(menuView, menuParams);
+      menuView.setAlpha(0f);
+      ObjectAnimator slideAnimator = ObjectAnimator.ofFloat(
+        menuView,
+        "translationY",
+        dpToPx(MENU_OPEN_TRANSLATION_DP),
+        0f
+      );
+      slideAnimator.setInterpolator(new DecelerateInterpolator());
+      slideAnimator.setDuration(MENU_ANIMATION_DURATION_MS);
+      slideAnimator.start();
+
+      menuView.animate().alpha(1f).setDuration(MENU_ANIMATION_DURATION_MS).start();
+    } catch (SecurityException | RuntimeException exception) {
+      collapseMenu();
+    }
+  }
+
+  private void ensureMenuView() {
     if (menuView != null) {
       return;
     }
-    expanded = true;
-    addScrim();
 
     menuView = new LinearLayout(this);
     menuView.setOrientation(LinearLayout.VERTICAL);
@@ -160,28 +220,6 @@ public class OverlayService extends Service {
     addMenuItem("Breathing", "Anchor", false);
     addMenuItem("Thinking Help", "CheckIn", false);
     addMenuItem("Voice Task", "Tasks", true);
-
-    menuParams = new WindowManager.LayoutParams(
-      dpToPx(220),
-      WindowManager.LayoutParams.WRAP_CONTENT,
-      Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        : WindowManager.LayoutParams.TYPE_PHONE,
-      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-      PixelFormat.TRANSLUCENT
-    );
-    menuParams.gravity = Gravity.TOP | Gravity.START;
-    menuParams.x = bubbleParams.x;
-    menuParams.y = Math.max(dpToPx(16), bubbleParams.y - dpToPx(260));
-
-    try {
-      windowManager.addView(menuView, menuParams);
-      ObjectAnimator animator = ObjectAnimator.ofFloat(menuView, "translationY", 24f, 0f);
-      animator.setDuration(200);
-      animator.start();
-    } catch (SecurityException | RuntimeException exception) {
-      collapseMenu();
-    }
   }
 
   private void addMenuItem(String label, String route, boolean autoRecord) {
@@ -189,7 +227,9 @@ public class OverlayService extends Service {
     menuItem.setText(label);
     menuItem.setTextColor(0xFFFFFFFF);
     menuItem.setTextSize(15f);
-    menuItem.setPadding(dpToPx(10), dpToPx(10), dpToPx(10), dpToPx(10));
+    menuItem.setMinHeight(dpToPx(48));
+    menuItem.setPadding(dpToPx(12), dpToPx(12), dpToPx(12), dpToPx(12));
+    menuItem.setGravity(Gravity.CENTER_VERTICAL);
     menuItem.setOnClickListener((ignored) -> {
       launchRoute(route, autoRecord);
       collapseMenu();
@@ -198,36 +238,66 @@ public class OverlayService extends Service {
   }
 
   private void addScrim() {
-    if (scrimView != null) {
+    if (isViewAttached(scrimView)) {
       return;
     }
-    scrimView = new View(this);
-    scrimView.setBackgroundColor(0x00000000);
-    scrimView.setOnClickListener((ignored) -> collapseMenu());
 
-    scrimParams = new WindowManager.LayoutParams(
-      WindowManager.LayoutParams.MATCH_PARENT,
-      WindowManager.LayoutParams.MATCH_PARENT,
-      Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-        ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-        : WindowManager.LayoutParams.TYPE_PHONE,
-      WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-      PixelFormat.TRANSLUCENT
-    );
+    if (scrimView == null) {
+      scrimView = new View(this);
+      scrimView.setBackgroundColor(0x29000000);
+      scrimView.setOnClickListener((ignored) -> collapseMenu());
+    }
+
+    if (scrimParams == null) {
+      scrimParams = new WindowManager.LayoutParams(
+        WindowManager.LayoutParams.MATCH_PARENT,
+        WindowManager.LayoutParams.MATCH_PARENT,
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+          ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+          : WindowManager.LayoutParams.TYPE_PHONE,
+        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+        PixelFormat.TRANSLUCENT
+      );
+    }
+
     scrimParams.gravity = Gravity.TOP | Gravity.START;
     try {
       windowManager.addView(scrimView, scrimParams);
+      scrimView.setAlpha(0f);
+      scrimView.animate().alpha(1f).setDuration(MENU_ANIMATION_DURATION_MS).start();
     } catch (SecurityException | RuntimeException ignored) {
       scrimView = null;
     }
   }
 
   private void collapseMenu() {
+    if (!expanded) {
+      return;
+    }
+
     expanded = false;
-    removeViewIfAttached(menuView);
-    removeViewIfAttached(scrimView);
-    menuView = null;
-    scrimView = null;
+
+    if (isViewAttached(menuView)) {
+      menuView
+        .animate()
+        .alpha(0f)
+        .translationY(dpToPx(8))
+        .setDuration(120)
+        .withEndAction(() -> {
+          menuView.setTranslationY(0f);
+          removeViewIfAttached(menuView);
+        })
+        .start();
+    }
+
+    if (isViewAttached(scrimView)) {
+      scrimView
+        .animate()
+        .alpha(0f)
+        .setDuration(120)
+        .withEndAction(() -> removeViewIfAttached(scrimView))
+        .start();
+    }
   }
 
   private void launchRoute(String route, boolean autoRecord) {
@@ -252,12 +322,89 @@ public class OverlayService extends Service {
     }
   }
 
+  private boolean isViewAttached(View view) {
+    return view != null && view.isAttachedToWindow();
+  }
+
   private void setCount(int count) {
     SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
     preferences.edit().putInt(KEY_LAST_COUNT, count).apply();
     if (countView != null) {
       countView.post(() -> countView.setText(String.valueOf(count)));
     }
+  }
+
+  private void clampBubblePosition(int bubbleSize) {
+    if (bubbleParams == null) {
+      return;
+    }
+
+    int margin = dpToPx(8);
+    int maxX = Math.max(margin, getResources().getDisplayMetrics().widthPixels - bubbleSize - margin);
+    int maxY = Math.max(margin, getResources().getDisplayMetrics().heightPixels - bubbleSize - margin);
+
+    bubbleParams.x = Math.max(margin, Math.min(bubbleParams.x, maxX));
+    bubbleParams.y = Math.max(margin, Math.min(bubbleParams.y, maxY));
+  }
+
+  private void clampMenuPosition() {
+    if (menuParams == null) {
+      return;
+    }
+
+    int margin = dpToPx(8);
+    int menuWidth = dpToPx(220);
+    int maxX = Math.max(margin, getResources().getDisplayMetrics().widthPixels - menuWidth - margin);
+    int estimatedMenuHeight = dpToPx(320);
+    int maxY = Math.max(margin, getResources().getDisplayMetrics().heightPixels - estimatedMenuHeight - margin);
+
+    menuParams.x = Math.max(margin, Math.min(menuParams.x, maxX));
+    menuParams.y = Math.max(margin, Math.min(menuParams.y, maxY));
+  }
+
+  private void persistBubblePosition() {
+    if (bubbleParams == null) {
+      return;
+    }
+
+    SharedPreferences preferences = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
+    preferences
+      .edit()
+      .putInt(KEY_BUBBLE_X, bubbleParams.x)
+      .putInt(KEY_BUBBLE_Y, bubbleParams.y)
+      .apply();
+  }
+
+  private void snapBubbleToNearestEdge() {
+    if (bubbleParams == null) {
+      return;
+    }
+
+    int width = getResources().getDisplayMetrics().widthPixels;
+    int bubbleWidth = bubbleView != null && bubbleView.getWidth() > 0 ? bubbleView.getWidth() : dpToPx(56);
+    int margin = dpToPx(8);
+    int leftEdge = margin;
+    int rightEdge = Math.max(margin, width - bubbleWidth - margin);
+    int center = bubbleParams.x + (bubbleWidth / 2);
+
+    int targetX = center < width / 2 ? leftEdge : rightEdge;
+    animateBubbleToX(targetX);
+  }
+
+  private void animateBubbleToX(int targetX) {
+    if (bubbleParams == null || bubbleView == null || !isViewAttached(bubbleView)) {
+      return;
+    }
+
+    ValueAnimator animator = ValueAnimator.ofInt(bubbleParams.x, targetX);
+    animator.setDuration(140);
+    animator.setInterpolator(new DecelerateInterpolator());
+    animator.addUpdateListener((valueAnimator) -> {
+      bubbleParams.x = (int) valueAnimator.getAnimatedValue();
+      windowManager.updateViewLayout(bubbleView, bubbleParams);
+    });
+    animator.start();
+    persistBubblePosition();
   }
 
   private Notification createNotification() {
@@ -304,14 +451,28 @@ public class OverlayService extends Service {
         case MotionEvent.ACTION_MOVE:
           bubbleParams.x = initialX + (int) (event.getRawX() - initialTouchX);
           bubbleParams.y = initialY + (int) (event.getRawY() - initialTouchY);
+          int bubbleSize = bubbleView != null && bubbleView.getWidth() > 0 ? bubbleView.getWidth() : dpToPx(56);
+          clampBubblePosition(bubbleSize);
           windowManager.updateViewLayout(bubbleView, bubbleParams);
-          if (Math.abs(event.getRawX() - initialTouchX) > 10 || Math.abs(event.getRawY() - initialTouchY) > 10) {
+          int dragThreshold = dpToPx(DRAG_THRESHOLD_DP);
+          if (
+            Math.abs(event.getRawX() - initialTouchX) > dragThreshold ||
+            Math.abs(event.getRawY() - initialTouchY) > dragThreshold
+          ) {
             moved = true;
           }
           return true;
         case MotionEvent.ACTION_UP:
           if (!moved) {
             toggleExpanded();
+          } else {
+            snapBubbleToNearestEdge();
+            persistBubblePosition();
+          }
+          return true;
+        case MotionEvent.ACTION_CANCEL:
+          if (moved) {
+            persistBubblePosition();
           }
           return true;
         default:

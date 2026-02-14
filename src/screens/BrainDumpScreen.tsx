@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+} from 'react';
 import {
   View,
   Text,
@@ -11,6 +17,8 @@ import {
   Platform,
   UIManager,
   ActivityIndicator,
+  Alert,
+  AccessibilityInfo,
 } from 'react-native';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import StorageService from '../services/StorageService';
@@ -31,6 +39,8 @@ const HIT_SLOP = {
 };
 
 const HOVER_SHADOW = '0 0 0 rgba(0,0,0,0)'; // Removed
+const PERSIST_DEBOUNCE_MS = 300;
+const OVERLAY_COUNT_DEBOUNCE_MS = 250;
 
 const CATEGORY_ORDER: Array<SortedItem['category']> = [
   'task',
@@ -45,8 +55,8 @@ interface DumpItem {
   id: string;
   text: string;
   createdAt: string;
-  source: 'text' | 'audio';  // Track origin
-  audioPath?: string;        // Optional local file path
+  source: 'text' | 'audio'; // Track origin
+  audioPath?: string; // Optional local file path
 }
 
 type RecordingState = 'idle' | 'recording' | 'processing';
@@ -68,6 +78,11 @@ const BrainDumpScreen = () => {
   const [sortingError, setSortingError] = useState<string | null>(null);
   const [sortedItems, setSortedItems] = useState<SortedItem[]>([]);
   const hasAutoRecorded = useRef(false);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const overlayCountTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const lastOverlayCountRef = useRef<number>(0);
 
   const loadItems = async () => {
     const storedItems = await StorageService.getJSON<DumpItem[]>(
@@ -95,8 +110,31 @@ const BrainDumpScreen = () => {
   }, []);
 
   useEffect(() => {
-    StorageService.setJSON(StorageService.STORAGE_KEYS.brainDump, items);
-    OverlayService.updateCount(items.length);
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+    persistTimerRef.current = setTimeout(() => {
+      StorageService.setJSON(StorageService.STORAGE_KEYS.brainDump, items);
+    }, PERSIST_DEBOUNCE_MS);
+
+    if (items.length !== lastOverlayCountRef.current) {
+      if (overlayCountTimerRef.current) {
+        clearTimeout(overlayCountTimerRef.current);
+      }
+      overlayCountTimerRef.current = setTimeout(() => {
+        OverlayService.updateCount(items.length);
+        lastOverlayCountRef.current = items.length;
+      }, OVERLAY_COUNT_DEBOUNCE_MS);
+    }
+
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+      }
+      if (overlayCountTimerRef.current) {
+        clearTimeout(overlayCountTimerRef.current);
+      }
+    };
   }, [items]);
 
   useEffect(() => {
@@ -134,7 +172,9 @@ const BrainDumpScreen = () => {
       if (started) {
         setRecordingState('recording');
       } else {
-        setRecordingError('Could not start recording. Check microphone permissions.');
+        setRecordingError(
+          'Could not start recording. Check microphone permissions.',
+        );
       }
     } else if (recordingState === 'recording') {
       // Stop recording and process
@@ -176,10 +216,23 @@ const BrainDumpScreen = () => {
   };
 
   const clearAll = () => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setItems([]);
-    setSortedItems([]);
-    setSortingError(null);
+    const clearItems = () => {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      setItems([]);
+      setSortedItems([]);
+      setSortingError(null);
+      AccessibilityInfo.announceForAccessibility('All items cleared.');
+    };
+
+    Alert.alert(
+      'Clear all items?',
+      'This will remove all brain dump entries.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Clear', style: 'destructive', onPress: clearItems },
+      ],
+      { cancelable: true },
+    );
   };
 
   const handleAISort = async () => {
@@ -187,11 +240,16 @@ const BrainDumpScreen = () => {
     setIsSorting(true);
 
     try {
-      const sorted = await AISortService.sortItems(items.map((item) => item.text));
+      const sorted = await AISortService.sortItems(
+        items.map((item) => item.text),
+      );
       setSortedItems(sorted);
+      AccessibilityInfo.announceForAccessibility('AI suggestions updated.');
     } catch (error) {
       setSortingError(
-        error instanceof Error ? error.message : 'AI sort is currently unavailable.',
+        error instanceof Error
+          ? error.message
+          : 'AI sort is currently unavailable.',
       );
       setSortedItems([]);
     } finally {
@@ -207,12 +265,10 @@ const BrainDumpScreen = () => {
       grouped.set(item.category, existing);
     });
 
-    return CATEGORY_ORDER
-      .map((category) => ({
-        category,
-        items: grouped.get(category) ?? [],
-      }))
-      .filter((entry) => entry.items.length > 0);
+    return CATEGORY_ORDER.map((category) => ({
+      category,
+      items: grouped.get(category) ?? [],
+    })).filter((entry) => entry.items.length > 0);
   }, [sortedItems]);
 
   const getPriorityStyle = (priority: SortedItem['priority']) => {
@@ -230,7 +286,13 @@ const BrainDumpScreen = () => {
       <Text style={styles.itemText}>{item.text}</Text>
       <Pressable
         onPress={() => deleteItem(item.id)}
-        style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+        style={({
+          pressed,
+          hovered,
+        }: {
+          pressed: boolean;
+          hovered?: boolean;
+        }) => [
           styles.deleteButton,
           hovered && styles.deleteButtonHovered,
           pressed && styles.deleteButtonPressed,
@@ -264,12 +326,16 @@ const BrainDumpScreen = () => {
                 style={styles.input}
                 placeholder="WHAT'S ON YOUR MIND?"
                 placeholderTextColor={Tokens.colors.text.tertiary}
+                accessibilityLabel="Add a brain dump item"
+                accessibilityHint="Type a thought and press Add"
                 value={input}
                 onChangeText={setInput}
                 onSubmitEditing={addItem}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 multiline={false}
+                returnKeyType="done"
+                blurOnSubmit
               />
             </View>
             <LinearButton
@@ -285,16 +351,26 @@ const BrainDumpScreen = () => {
             <Pressable
               onPress={handleRecordPress}
               disabled={recordingState === 'processing'}
-              style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+              style={({
+                pressed,
+                hovered,
+              }: {
+                pressed: boolean;
+                hovered?: boolean;
+              }) => [
                 styles.recordButton,
                 hovered && styles.recordButtonHovered,
                 recordingState === 'recording' && styles.recordButtonActive,
-                recordingState === 'processing' && styles.recordButtonProcessing,
+                recordingState === 'processing' &&
+                  styles.recordButtonProcessing,
                 pressed && styles.recordButtonPressed,
               ]}
             >
               {recordingState === 'processing' ? (
-                <ActivityIndicator size="small" color={Tokens.colors.text.primary} />
+                <ActivityIndicator
+                  size="small"
+                  color={Tokens.colors.text.primary}
+                />
               ) : (
                 <Text style={styles.recordIcon}>
                   {recordingState === 'recording' ? '⏹️' : '🎙️'}
@@ -318,18 +394,32 @@ const BrainDumpScreen = () => {
                 <Pressable
                   onPress={handleAISort}
                   disabled={isSorting}
-                  style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                  style={({
+                    pressed,
+                    hovered,
+                  }: {
+                    pressed: boolean;
+                    hovered?: boolean;
+                  }) => [
                     styles.actionButton,
                     hovered && styles.clearHovered,
                     pressed && styles.clearPressed,
                     isSorting && styles.actionButtonDisabled,
                   ]}
                 >
-                  <Text style={styles.aiSortText}>{isSorting ? 'SORTING...' : 'AI SORT'}</Text>
+                  <Text style={styles.aiSortText}>
+                    {isSorting ? 'SORTING...' : 'AI SORT'}
+                  </Text>
                 </Pressable>
                 <Pressable
                   onPress={clearAll}
-                  style={({ pressed, hovered }: { pressed: boolean; hovered?: boolean }) => [
+                  style={({
+                    pressed,
+                    hovered,
+                  }: {
+                    pressed: boolean;
+                    hovered?: boolean;
+                  }) => [
                     styles.actionButton,
                     hovered && styles.clearHovered,
                     pressed && styles.clearPressed,
@@ -348,11 +438,21 @@ const BrainDumpScreen = () => {
               <Text style={styles.sortedTitle}>AI SUGGESTIONS</Text>
               {groupedSortedItems.map(({ category, items: categoryItems }) => (
                 <View key={category} style={styles.sortedGroup}>
-                  <Text style={styles.sortedCategory}>{category.toUpperCase()}</Text>
+                  <Text style={styles.sortedCategory}>
+                    {category.toUpperCase()}
+                  </Text>
                   {categoryItems.map((item, index) => (
-                    <View key={`${category}-${index}-${item.text}`} style={styles.sortedItemRow}>
+                    <View
+                      key={`${category}-${index}-${item.text}`}
+                      style={styles.sortedItemRow}
+                    >
                       <Text style={styles.sortedItemText}>{item.text}</Text>
-                      <View style={[styles.priorityBadge, getPriorityStyle(item.priority)]}>
+                      <View
+                        style={[
+                          styles.priorityBadge,
+                          getPriorityStyle(item.priority),
+                        ]}
+                      >
                         <Text style={styles.priorityText}>{item.priority}</Text>
                       </View>
                     </View>
@@ -366,6 +466,13 @@ const BrainDumpScreen = () => {
             data={items}
             keyExtractor={(item) => item.id}
             renderItem={renderItem}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            initialNumToRender={10}
+            maxToRenderPerBatch={10}
+            updateCellsBatchingPeriod={50}
+            windowSize={11}
+            removeClippedSubviews={Platform.OS === 'android'}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             ListEmptyComponent={
@@ -582,7 +689,7 @@ const styles = StyleSheet.create({
   priorityLow: {
     backgroundColor: Tokens.colors.brand[500],
   },
-  
+
   listContent: {
     paddingBottom: 120,
   },

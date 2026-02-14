@@ -36,6 +36,11 @@ const AnchorScreen = () => {
   const [count, setCount] = useState(4);
   const [isActive, setIsActive] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const phaseRef = useRef<'inhale' | 'hold' | 'exhale' | 'wait'>('inhale');
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   useEffect(() => {
     if (Platform.OS === 'android') {
@@ -52,7 +57,7 @@ const AnchorScreen = () => {
         setCount((prev) => {
           if (prev <= 1) {
             const phases: Record<
-              typeof phase,
+              'inhale' | 'hold' | 'exhale' | 'wait',
               'inhale' | 'hold' | 'exhale' | 'wait'
             > = {
               inhale: p.hold > 0 ? 'hold' : 'exhale',
@@ -60,13 +65,15 @@ const AnchorScreen = () => {
               exhale: p.wait > 0 ? 'wait' : 'inhale',
               wait: 'inhale',
             };
-            const nextPhase = phases[phase];
+            const currentPhase = phaseRef.current;
+            const nextPhase = phases[currentPhase];
 
             // Animate transition on native
             LayoutAnimation.configureNext(
               LayoutAnimation.Presets.easeInEaseOut,
             );
             setPhase(nextPhase);
+            phaseRef.current = nextPhase;
             return p[nextPhase] || p.inhale;
           }
           return prev - 1;
@@ -78,12 +85,13 @@ const AnchorScreen = () => {
         clearInterval(intervalRef.current);
       }
     };
-  }, [isActive, pattern, phase]);
+  }, [isActive, pattern]);
 
   const startPattern = (selectedPattern: BreathingPattern) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setPattern(selectedPattern);
     setPhase('inhale');
+    phaseRef.current = 'inhale';
     setCount(PATTERNS[selectedPattern].inhale);
     setIsActive(true);
   };

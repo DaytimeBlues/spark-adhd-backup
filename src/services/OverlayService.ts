@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from "react-native";
+import { NativeModules, Platform } from 'react-native';
 
 const { OverlayModule } = NativeModules as {
   OverlayModule?: {
@@ -14,61 +14,89 @@ const { OverlayModule } = NativeModules as {
 
 const OverlayService = {
   async canDrawOverlays(): Promise<boolean> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return false;
     }
     if (!OverlayModule?.canDrawOverlays) {
       return false;
     }
-    return OverlayModule.canDrawOverlays();
+    try {
+      return await OverlayModule.canDrawOverlays();
+    } catch {
+      return false;
+    }
   },
 
   async requestOverlayPermission(): Promise<boolean> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return false;
     }
     if (!OverlayModule?.requestOverlayPermission) {
       return false;
     }
-    return OverlayModule.requestOverlayPermission();
+    try {
+      return await OverlayModule.requestOverlayPermission();
+    } catch {
+      return false;
+    }
   },
 
   startOverlay() {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return;
     }
-    OverlayModule?.startOverlay?.();
+    try {
+      OverlayModule?.startOverlay?.();
+    } catch {
+      // no-op
+    }
   },
 
   stopOverlay() {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return;
     }
-    OverlayModule?.stopOverlay?.();
+    try {
+      OverlayModule?.stopOverlay?.();
+    } catch {
+      // no-op
+    }
   },
 
   updateCount(count: number) {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return;
     }
-    OverlayModule?.updateCount?.(count);
+    try {
+      OverlayModule?.updateCount?.(count);
+    } catch {
+      // no-op
+    }
   },
 
   collapseOverlay() {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return;
     }
-    OverlayModule?.collapseOverlay?.();
+    try {
+      OverlayModule?.collapseOverlay?.();
+    } catch {
+      // no-op
+    }
   },
 
   async isExpanded(): Promise<boolean> {
-    if (Platform.OS !== "android") {
+    if (Platform.OS !== 'android') {
       return false;
     }
     if (!OverlayModule?.isExpanded) {
       return false;
     }
-    return OverlayModule.isExpanded();
+    try {
+      return await OverlayModule.isExpanded();
+    } catch {
+      return false;
+    }
   },
 };
 

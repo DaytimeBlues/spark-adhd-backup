@@ -6,6 +6,7 @@ import android.os.Bundle;
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;
 import com.facebook.react.ReactInstanceManager;
+import com.facebook.react.ReactInstanceManager.ReactInstanceEventListener;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.WritableMap;
@@ -54,9 +55,25 @@ public class MainActivity extends ReactActivity {
     ReactInstanceManager manager = getReactNativeHost().getReactInstanceManager();
     ReactContext context = manager.getCurrentReactContext();
     if (context == null) {
+      final ReactInstanceEventListener listener = new ReactInstanceEventListener() {
+        @Override
+        public void onReactContextInitialized(ReactContext initializedContext) {
+          emitOverlayRouteIntent(initializedContext, route, autoRecord);
+          manager.removeReactInstanceEventListener(this);
+        }
+      };
+
+      manager.addReactInstanceEventListener(listener);
+      if (!manager.hasStartedCreatingInitialContext()) {
+        manager.createReactContextInBackground();
+      }
       return;
     }
 
+    emitOverlayRouteIntent(context, route, autoRecord);
+  }
+
+  private void emitOverlayRouteIntent(ReactContext context, String route, boolean autoRecord) {
     WritableMap payload = Arguments.createMap();
     payload.putString("route", route);
     payload.putBoolean("autoRecord", autoRecord);

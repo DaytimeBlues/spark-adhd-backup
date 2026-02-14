@@ -16,12 +16,15 @@ import { LinearButton } from '../components/ui/LinearButton';
 const HERO_TIMER_SIZE = 120;
 const GLOW_TEXT_SHADOW = '0 0 40px rgba(255,255,255,0.1)';
 const HOVER_SHADOW = '0 4px 12px rgba(0,0,0,0.2)';
+const IGNITE_DURATION_SECONDS = 5 * 60;
+const PERSIST_INTERVAL_MS = 5000;
 
 const IgniteScreen = () => {
   const [isRunning, setIsRunning] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300);
+  const [timeLeft, setTimeLeft] = useState(IGNITE_DURATION_SECONDS);
   const [isPlaying, setIsPlaying] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     SoundService.initBrownNoise();
@@ -58,10 +61,22 @@ const IgniteScreen = () => {
   }, []);
 
   useEffect(() => {
-    StorageService.setJSON(StorageService.STORAGE_KEYS.igniteState, {
-      timeLeft,
-      isPlaying,
-    });
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+
+    persistTimerRef.current = setTimeout(() => {
+      StorageService.setJSON(StorageService.STORAGE_KEYS.igniteState, {
+        timeLeft,
+        isPlaying,
+      });
+    }, PERSIST_INTERVAL_MS);
+
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+      }
+    };
   }, [timeLeft, isPlaying]);
 
   const startTimer = () => {
@@ -90,7 +105,7 @@ const IgniteScreen = () => {
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTimeLeft(300);
+    setTimeLeft(IGNITE_DURATION_SECONDS);
     setIsPlaying(false);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);

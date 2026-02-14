@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Pressable,
   Text,
@@ -7,7 +8,7 @@ import {
   ActivityIndicator,
   Platform,
 } from 'react-native';
-import { Colors, Spacing, TypeScale, Radii, Tokens } from '../../theme/tokens';
+import { Tokens } from '../../theme/tokens';
 import HapticsService from '../../services/HapticsService';
 
 interface LinearButtonProps {
@@ -69,7 +70,7 @@ export const LinearButton: React.FC<LinearButtonProps> = ({
   };
 
   const handlePress = () => {
-    HapticsService.tap();
+    HapticsService.tap({ key: 'primaryAction' });
     onPress();
   };
 
@@ -96,7 +97,9 @@ export const LinearButton: React.FC<LinearButtonProps> = ({
       {loading ? (
         <ActivityIndicator
           color={
-            variant === 'primary' ? Colors.text.primary : Colors.indigo.primary
+            variant === 'primary'
+              ? Tokens.colors.text.primary
+              : Tokens.colors.brand[500]
           }
         />
       ) : (
@@ -117,7 +120,7 @@ export const LinearButton: React.FC<LinearButtonProps> = ({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Radii.none, // Sharp corners
+    borderRadius: Tokens.radii.none, // Sharp corners
     justifyContent: 'center',
     alignItems: 'center',
     flexDirection: 'row',
@@ -129,75 +132,75 @@ const styles = StyleSheet.create({
     }),
   },
   sm: {
-    paddingVertical: Spacing[1],
-    paddingHorizontal: Spacing[2],
+    paddingVertical: Tokens.spacing[1],
+    paddingHorizontal: Tokens.spacing[2],
   },
   md: {
-    paddingVertical: Spacing[2],
-    paddingHorizontal: Spacing[4],
+    paddingVertical: Tokens.spacing[2],
+    paddingHorizontal: Tokens.spacing[4],
     minHeight: 36,
   },
   lg: {
-    paddingVertical: Spacing[3],
-    paddingHorizontal: Spacing[6],
-    minHeight: 44,
+    paddingVertical: Tokens.spacing[3],
+    paddingHorizontal: Tokens.spacing[6],
+    minHeight: Tokens.layout.minTapTarget, // 44px
   },
   primary: {
-    backgroundColor: Colors.indigo.primary,
+    backgroundColor: Tokens.colors.brand[500],
     borderWidth: 1,
-    borderColor: Colors.indigo.primary,
+    borderColor: Tokens.colors.brand[500],
   },
   secondary: {
     backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: Colors.neutral.border,
-    borderStyle: 'dashed', // Industrial feel
+    borderColor: Tokens.colors.neutral.border,
+    borderStyle: 'solid', // Changed from dashed to solid for cleaner look
   },
   ghost: {
     backgroundColor: 'transparent',
   },
   error: {
-    backgroundColor: Colors.error.subtle,
+    backgroundColor: Tokens.colors.error.subtle,
     borderWidth: 1,
-    borderColor: Colors.error.main,
+    borderColor: Tokens.colors.error.main,
   },
   hovered: {
     transform: [{ translateY: -1 }],
     ...Platform.select({
       web: {
-        filter: 'brightness(1.2)',
-        backgroundColor: Colors.neutral.glass,
+        // Industrial hover: sharp contrast shift, no blur
+        opacity: 0.9,
       },
     }),
   },
   pressed: {
-    opacity: 0.9,
-    transform: [{ scale: Tokens.motion.scales.press }],
+    opacity: 0.8,
+    transform: [{ scale: 0.98 }], // Tighter press scale
   },
   disabled: {
     opacity: 0.5,
-    backgroundColor: Colors.neutral.dark,
-    borderColor: Colors.neutral.borderSubtle,
+    backgroundColor: Tokens.colors.neutral.dark,
+    borderColor: Tokens.colors.neutral.borderSubtle,
   },
   text: {
     fontFamily: Tokens.type.fontFamily.sans,
     fontWeight: '700',
-    fontSize: TypeScale.sm, // Slightly smaller for uppercase
-    letterSpacing: 1, // Wider spacing for uppercase
+    fontSize: Tokens.type.sm, // Slightly smaller for uppercase
+    letterSpacing: 1.5, // Wider spacing for uppercase
   },
   smText: {
-    fontSize: TypeScale.xs,
+    fontSize: Tokens.type.xs,
   },
   primaryText: {
-    color: Colors.text.primary,
+    color: Tokens.colors.text.primary,
   },
   secondaryText: {
-    color: Colors.text.primary,
+    color: Tokens.colors.text.primary,
   },
   ghostText: {
-    color: Colors.text.secondary,
+    color: Tokens.colors.text.secondary,
   },
   errorText: {
-    color: Colors.error.main,
+    color: Tokens.colors.error.main,
   },
 });

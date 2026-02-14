@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { config } from '../config';
 import StorageService from './StorageService';
+import OverlayService from './OverlayService';
 
 /**
  * PlaudService
@@ -55,6 +56,13 @@ const GOOGLE_TASKS_SCOPE = 'https://www.googleapis.com/auth/tasks';
 const GOOGLE_TASKS_API_BASE = 'https://tasks.googleapis.com/tasks/v1';
 const GOOGLE_TASKS_INBOX_NAME = 'Spark Inbox';
 const MAX_PROCESSED_IDS = 500;
+const MAX_MARK_CONCURRENCY = 4;
+
+type RNFormDataFile = {
+  uri: string;
+  type: string;
+  name: string;
+};
 
 interface GoogleSigninLike {
   configure: (config: {
@@ -64,7 +72,9 @@ interface GoogleSigninLike {
     offlineAccess?: boolean;
     forceCodeForRefreshToken?: boolean;
   }) => void;
-  hasPlayServices: (options?: { showPlayServicesUpdateDialog?: boolean }) => Promise<unknown>;
+  hasPlayServices: (options?: {
+    showPlayServicesUpdateDialog?: boolean;
+  }) => Promise<unknown>;
   signIn: () => Promise<unknown>;
   signInSilently: () => Promise<unknown>;
   getTokens: () => Promise<{ accessToken: string }>;
@@ -72,9 +82,10 @@ interface GoogleSigninLike {
 
 const getGoogleSignin = (): GoogleSigninLike | null => {
   try {
-    const googleModule = require('@react-native-google-signin/google-signin') as {
-      GoogleSignin?: GoogleSigninLike;
-    };
+    const googleModule =
+      require('@react-native-google-signin/google-signin') as {
+        GoogleSignin?: GoogleSigninLike;
+      };
     return googleModule.GoogleSignin || null;
   } catch {
     return null;
@@ -126,11 +137,12 @@ class PlaudServiceClass {
         formData.append('audio', blob);
       } else {
         // For native, use file URI directly
-        formData.append('audio', {
+        const file: RNFormDataFile = {
           uri: audioUri,
           type: 'audio/m4a',
           name: 'recording.m4a',
-        } as unknown as Blob);
+        };
+        formData.append('audio', file as unknown as Blob);
       }
 
       // Send to middleware
@@ -186,6 +198,7 @@ class PlaudServiceClass {
 class GoogleTasksSyncServiceClass {
   private configured = false;
   private pollTimer: ReturnType<typeof setInterval> | null = null;
+  private isSyncing = false;
 
   configureGoogleSignIn(webClientId?: string, iosClientId?: string): void {
     const googleSignin = getGoogleSignin();
@@ -223,7 +236,9 @@ class GoogleTasksSyncServiceClass {
         return false;
       }
 
-      await googleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await googleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
       await googleSignin.signIn();
       return true;
     } catch (error) {
@@ -263,7 +278,8 @@ class GoogleTasksSyncServiceClass {
 
     return {
       listId: typeof state.listId === 'string' ? state.listId : undefined,
-      syncToken: typeof state.syncToken === 'string' ? state.syncToken : undefined,
+      syncToken:
+        typeof state.syncToken === 'string' ? state.syncToken : undefined,
     };
   }
 
@@ -309,27 +325,34 @@ class GoogleTasksSyncServiceClass {
 
     if (!response.ok) {
       const payload = await response.text();
-      throw new Error(`Google Tasks API error (${response.status}): ${payload}`);
+      throw new Error(
+        `Google Tasks API error (${response.status}): ${payload}`,
+      );
     }
 
     return (await response.json()) as T;
   }
 
   private async ensureSparkInboxList(accessToken: string): Promise<string> {
-    const lists = await this.request<{ items?: Array<{ id: string; title?: string }> }>(
-      accessToken,
-      '/users/@me/lists',
-    );
+    const lists = await this.request<{
+      items?: Array<{ id: string; title?: string }>;
+    }>(accessToken, '/users/@me/lists');
 
-    const existing = lists.items?.find((list) => list.title === GOOGLE_TASKS_INBOX_NAME);
+    const existing = lists.items?.find(
+      (list) => list.title === GOOGLE_TASKS_INBOX_NAME,
+    );
     if (existing?.id) {
       return existing.id;
     }
 
-    const created = await this.request<{ id: string }>(accessToken, '/users/@me/lists', {
-      method: 'POST',
-      body: JSON.stringify({ title: GOOGLE_TASKS_INBOX_NAME }),
-    });
+    const created = await this.request<{ id: string }>(
+      accessToken,
+      '/users/@me/lists',
+      {
+        method: 'POST',
+        body: JSON.stringify({ title: GOOGLE_TASKS_INBOX_NAME }),
+      },
+    );
 
     return created.id;
   }
@@ -383,10 +406,14 @@ class GoogleTasksSyncServiceClass {
     taskId: string,
   ): Promise<boolean> {
     try {
-      await this.request(accessToken, `/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status: 'completed' }),
-      });
+      await this.request(
+        accessToken,
+        `/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'completed' }),
+        },
+      );
       return true;
     } catch (error) {
       console.error('Failed to mark Google task as completed:', error);
@@ -402,97 +429,135 @@ class GoogleTasksSyncServiceClass {
       syncTokenUpdated: false,
     };
 
-    const accessToken = await this.getAccessToken();
-    if (!accessToken) {
+    if (this.isSyncing) {
       return result;
     }
 
-    const syncState = await this.readSyncState();
-    const listId = syncState.listId || (await this.ensureSparkInboxList(accessToken));
-
-    let delta: { items: GoogleTaskItem[]; nextSyncToken?: string };
+    this.isSyncing = true;
     try {
-      delta = await this.listDeltaTasks(accessToken, listId, syncState.syncToken);
-    } catch (error) {
-      if (error instanceof Error && error.message === 'GOOGLE_SYNC_TOKEN_EXPIRED') {
-        delta = await this.listDeltaTasks(accessToken, listId);
-      } else {
-        throw error;
-      }
-    }
-
-    const existingItems =
-      (await StorageService.getJSON<BrainDumpItem[]>(StorageService.STORAGE_KEYS.brainDump)) || [];
-    const processedIds = await this.getProcessedIds();
-    const processedSet = new Set(processedIds);
-    const existingGoogleTaskIds = new Set(
-      existingItems
-        .map((item) => item.googleTaskId)
-        .filter((taskId): taskId is string => typeof taskId === 'string'),
-    );
-
-    const pendingMarks: string[] = [];
-    const importedItems: BrainDumpItem[] = [];
-
-    for (const task of delta.items) {
-      const title = task.title?.trim();
-      if (!task.id || !title || task.deleted || task.status === 'completed') {
-        result.skippedCount += 1;
-        continue;
+      const accessToken = await this.getAccessToken();
+      if (!accessToken) {
+        return result;
       }
 
-      if (processedSet.has(task.id) || existingGoogleTaskIds.has(task.id)) {
-        result.skippedCount += 1;
-        continue;
+      const syncState = await this.readSyncState();
+      const listId =
+        syncState.listId || (await this.ensureSparkInboxList(accessToken));
+
+      let delta: { items: GoogleTaskItem[]; nextSyncToken?: string };
+      try {
+        delta = await this.listDeltaTasks(
+          accessToken,
+          listId,
+          syncState.syncToken,
+        );
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === 'GOOGLE_SYNC_TOKEN_EXPIRED'
+        ) {
+          delta = await this.listDeltaTasks(accessToken, listId);
+        } else {
+          throw error;
+        }
       }
 
-      importedItems.push({
-        id: generateSyncItemId(),
-        text: task.notes ? `${title}\n\n${task.notes}` : title,
-        createdAt: task.updated || new Date().toISOString(),
-        source: 'google',
-        googleTaskId: task.id,
-      });
-      pendingMarks.push(task.id);
-    }
+      const existingItems =
+        (await StorageService.getJSON<BrainDumpItem[]>(
+          StorageService.STORAGE_KEYS.brainDump,
+        )) || [];
+      const processedIds = await this.getProcessedIds();
+      const processedSet = new Set(processedIds);
+      const existingGoogleTaskIds = new Set(
+        existingItems
+          .map((item) => item.googleTaskId)
+          .filter((taskId): taskId is string => typeof taskId === 'string'),
+      );
 
-    if (importedItems.length > 0) {
-      await StorageService.setJSON(StorageService.STORAGE_KEYS.brainDump, [
-        ...importedItems,
-        ...existingItems,
-      ]);
-      result.importedCount = importedItems.length;
-    }
+      const pendingMarks: string[] = [];
+      const importedItems: BrainDumpItem[] = [];
 
-    for (const taskId of pendingMarks) {
-      const marked = await this.markTaskCompleted(accessToken, listId, taskId);
-      if (marked) {
-        result.markedCompletedCount += 1;
-        processedSet.add(taskId);
+      for (const task of delta.items) {
+        const title = task.title?.trim();
+        if (!task.id || !title || task.deleted || task.status === 'completed') {
+          result.skippedCount += 1;
+          continue;
+        }
+
+        if (processedSet.has(task.id) || existingGoogleTaskIds.has(task.id)) {
+          result.skippedCount += 1;
+          continue;
+        }
+
+        importedItems.push({
+          id: generateSyncItemId(),
+          text: task.notes ? `${title}\n\n${task.notes}` : title,
+          createdAt: task.updated || new Date().toISOString(),
+          source: 'google',
+          googleTaskId: task.id,
+        });
+        pendingMarks.push(task.id);
       }
+
+      if (importedItems.length > 0) {
+        const nextItems = [...importedItems, ...existingItems];
+        await StorageService.setJSON(
+          StorageService.STORAGE_KEYS.brainDump,
+          nextItems,
+        );
+        OverlayService.updateCount(nextItems.length);
+        result.importedCount = importedItems.length;
+      }
+
+      for (
+        let index = 0;
+        index < pendingMarks.length;
+        index += MAX_MARK_CONCURRENCY
+      ) {
+        const chunk = pendingMarks.slice(index, index + MAX_MARK_CONCURRENCY);
+        const markResults = await Promise.all(
+          chunk.map((taskId) =>
+            this.markTaskCompleted(accessToken, listId, taskId),
+          ),
+        );
+
+        markResults.forEach((marked, chunkIndex) => {
+          if (marked) {
+            const taskId = chunk[chunkIndex];
+            result.markedCompletedCount += 1;
+            processedSet.add(taskId);
+          }
+        });
+      }
+
+      await this.setProcessedIds(Array.from(processedSet));
+
+      const nextState: GoogleTasksSyncState = {
+        listId,
+        syncToken: delta.nextSyncToken,
+      };
+
+      await this.writeSyncState(nextState);
+      if (delta.nextSyncToken && delta.nextSyncToken !== syncState.syncToken) {
+        result.syncTokenUpdated = true;
+      }
+
+      await StorageService.set(
+        StorageService.STORAGE_KEYS.googleTasksLastSyncAt,
+        new Date().toISOString(),
+      );
+
+      return result;
+    } finally {
+      this.isSyncing = false;
     }
-
-    await this.setProcessedIds(Array.from(processedSet));
-
-    const nextState: GoogleTasksSyncState = {
-      listId,
-      syncToken: delta.nextSyncToken,
-    };
-
-    await this.writeSyncState(nextState);
-    if (delta.nextSyncToken && delta.nextSyncToken !== syncState.syncToken) {
-      result.syncTokenUpdated = true;
-    }
-
-    await StorageService.set(
-      StorageService.STORAGE_KEYS.googleTasksLastSyncAt,
-      new Date().toISOString(),
-    );
-
-    return result;
   }
 
   startForegroundPolling(intervalMs = 15 * 60 * 1000): void {
+    if (Platform.OS === 'web') {
+      return;
+    }
+
     if (this.pollTimer) {
       return;
     }

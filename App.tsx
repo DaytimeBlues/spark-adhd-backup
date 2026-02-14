@@ -1,15 +1,28 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { StatusBar, Platform, View, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import {
+  StatusBar,
+  Platform,
+  View,
+  ActivityIndicator,
+  DeviceEventEmitter,
+  AppState,
+  AppStateStatus,
+} from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import StorageService from './src/services/StorageService';
 import { GoogleTasksSyncService } from './src/services/PlaudService';
+import OverlayService from './src/services/OverlayService';
 import { Tokens } from './src/theme/tokens';
-import { handleOverlayIntent, navigationRef } from './src/navigation/navigationRef';
+import {
+  handleOverlayIntent,
+  navigationRef,
+} from './src/navigation/navigationRef';
 
 const App = () => {
   const [isReady, setIsReady] = useState(false);
+  const pollingStartedRef = useRef(false);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -25,17 +38,46 @@ const App = () => {
 
     initializeApp();
 
-    GoogleTasksSyncService.startForegroundPolling();
+    const syncPollingForState = (nextState: AppStateStatus) => {
+      if (Platform.OS === 'web') {
+        return;
+      }
+
+      if (nextState === 'active') {
+        if (!pollingStartedRef.current) {
+          GoogleTasksSyncService.startForegroundPolling();
+          pollingStartedRef.current = true;
+        }
+        return;
+      }
+
+      GoogleTasksSyncService.stopForegroundPolling();
+      pollingStartedRef.current = false;
+    };
+
+    syncPollingForState(AppState.currentState);
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      syncPollingForState,
+    );
 
     return () => {
+      appStateSubscription.remove();
       GoogleTasksSyncService.stopForegroundPolling();
+      pollingStartedRef.current = false;
     };
   }, []);
 
   useEffect(() => {
-    const subscription = DeviceEventEmitter.addListener('overlayRouteIntent', (payload) => {
-      handleOverlayIntent(payload ?? {});
-    });
+    const subscription = DeviceEventEmitter.addListener(
+      'overlayRouteIntent',
+      (payload) => {
+        const handled = handleOverlayIntent(payload ?? {});
+        if (handled) {
+          OverlayService.collapseOverlay();
+        }
+      },
+    );
 
     return () => {
       subscription.remove();
@@ -59,7 +101,10 @@ const App = () => {
 
   const content = (
     <NavigationContainer ref={navigationRef}>
-      <StatusBar barStyle="light-content" backgroundColor={Tokens.colors.neutral.darkest} />
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={Tokens.colors.neutral.darkest}
+      />
       <AppNavigator />
     </NavigationContainer>
   );

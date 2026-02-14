@@ -50,42 +50,42 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
         name: 'Ignite',
         icon: 'fire',
         desc: '5-MIN FOCUS TIMER',
-        accent: Tokens.colors.indigo.primary,
+        accent: Tokens.colors.brand[500],
       },
       {
         id: 'fogcutter',
         name: 'Fog Cutter',
         icon: 'weather-windy',
         desc: 'BREAK TASKS DOWN',
-        accent: Tokens.colors.indigo.primary, // Unified accent
+        accent: Tokens.colors.brand[500], // Unified accent
       },
       {
         id: 'pomodoro',
         name: 'Pomodoro',
         icon: 'timer-sand',
         desc: 'CLASSIC TIMER',
-        accent: Tokens.colors.indigo.primary,
+        accent: Tokens.colors.brand[500],
       },
       {
         id: 'anchor',
         name: 'Anchor',
         icon: 'anchor',
         desc: 'BREATHING EXERCISES',
-        accent: Tokens.colors.indigo.primary,
+        accent: Tokens.colors.brand[500],
       },
       {
         id: 'checkin',
         name: 'Check In',
         icon: 'chart-bar',
         desc: 'MOOD & ENERGY',
-        accent: Tokens.colors.indigo.primary,
+        accent: Tokens.colors.brand[500],
       },
       {
         id: 'cbtguide',
         name: 'CBT Guide',
         icon: 'brain',
         desc: 'EVIDENCE-BASED STRATEGIES',
-        accent: Tokens.colors.indigo.primary,
+        accent: Tokens.colors.brand[500],
       },
     ],
     [],
@@ -151,36 +151,56 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
       return;
     }
 
-    if (value) {
-      const hasPermission = await OverlayService.canDrawOverlays();
-      if (hasPermission) {
-        OverlayService.startOverlay();
-        setIsOverlayEnabled(true);
-      } else {
+    try {
+      if (value) {
+        const hasPermission = await OverlayService.canDrawOverlays();
+        if (hasPermission) {
+          const taskItems =
+            (await StorageService.getJSON<Array<{ id: string }>>(
+              StorageService.STORAGE_KEYS.brainDump,
+            )) || [];
+          OverlayService.updateCount(taskItems.length);
+          OverlayService.startOverlay();
+          setIsOverlayEnabled(true);
+          return;
+        }
+
         const granted = await OverlayService.requestOverlayPermission();
         const hasPermissionAfterRequest =
           granted || (await OverlayService.canDrawOverlays());
 
         if (hasPermissionAfterRequest) {
+          const taskItems =
+            (await StorageService.getJSON<Array<{ id: string }>>(
+              StorageService.STORAGE_KEYS.brainDump,
+            )) || [];
+          OverlayService.updateCount(taskItems.length);
           OverlayService.startOverlay();
           setIsOverlayEnabled(true);
-        } else {
-          setIsOverlayEnabled(false);
+          return;
         }
+
+        setIsOverlayEnabled(false);
+        return;
       }
-    } else {
+
       OverlayService.stopOverlay();
+      setIsOverlayEnabled(false);
+    } catch (error) {
+      console.error('Failed to toggle overlay:', error);
       setIsOverlayEnabled(false);
     }
   };
 
   const loadStreak = async () => {
     try {
-      const streakCount = await StorageService.get(StorageService.STORAGE_KEYS.streakCount);
+      const streakCount = await StorageService.get(
+        StorageService.STORAGE_KEYS.streakCount,
+      );
       const parsed = streakCount ? parseInt(streakCount, 10) : 0;
       setStreak(Number.isNaN(parsed) ? 0 : parsed);
-    } catch (e) {
-      console.log('Error loading streak:', e);
+    } catch (error) {
+      console.error('Error loading streak:', error);
     }
   };
 
@@ -233,7 +253,8 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
             <View
               style={styles.streakBadge}
               testID="home-streak-badge"
-              accessibilityLabel="home-streak-badge"
+              accessibilityRole="text"
+              accessibilityLabel={`Streak: ${streak} ${streak !== 1 ? 'days' : 'day'}`}
             >
               <Text style={styles.streakEmoji}>🔥</Text>
               <Text
@@ -247,10 +268,27 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
           </View>
 
           {Platform.OS === 'android' && (
-            <View style={[styles.overlayCard, isOverlayEnabled && styles.overlayCardActive]}>
+            <View
+              style={[
+                styles.overlayCard,
+                isOverlayEnabled && styles.overlayCardActive,
+              ]}
+            >
               <View>
                 <Text style={styles.overlayTitle}>FOCUS OVERLAY</Text>
-                <Text style={styles.overlayDesc}>SHOW TASK COUNT WHILE YOU FOCUS</Text>
+                <Text style={styles.overlayDesc}>
+                  SHOW TASK COUNT WHILE YOU FOCUS
+                </Text>
+                <Text
+                  style={[
+                    styles.overlayStatus,
+                    isOverlayEnabled && styles.overlayStatusActive,
+                  ]}
+                >
+                  {isOverlayEnabled
+                    ? 'ACTIVE • FLOATING OVER APPS'
+                    : 'REQUIRES PERMISSION'}
+                </Text>
               </View>
               <View style={styles.overlaySwitchHitTarget}>
                 <Switch
@@ -258,7 +296,10 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                   accessibilityRole="switch"
                   accessibilityLabel="home-overlay-toggle"
                   accessibilityState={{ checked: isOverlayEnabled }}
-                  trackColor={{ false: Tokens.colors.neutral[600], true: Tokens.colors.brand[500] }}
+                  trackColor={{
+                    false: Tokens.colors.neutral[600],
+                    true: Tokens.colors.brand[500],
+                  }}
                   thumbColor={Tokens.colors.neutral[0]}
                   ios_backgroundColor={Tokens.colors.neutral[700]}
                   onValueChange={toggleOverlay}
@@ -336,7 +377,7 @@ const styles = StyleSheet.create({
     paddingVertical: Tokens.spacing[2],
     borderRadius: Tokens.radii.none, // Sharp
     borderWidth: 1,
-    borderStyle: 'dotted', // Dotted border
+    borderStyle: 'dashed', // Dashed for industrial feel
     borderColor: Tokens.colors.neutral.border,
   },
   streakEmoji: {
@@ -348,7 +389,7 @@ const styles = StyleSheet.create({
     fontSize: Tokens.type.sm,
     fontWeight: '700',
     color: Tokens.colors.text.primary,
-    letterSpacing: 1,
+    letterSpacing: 1.5,
     textTransform: 'uppercase',
   },
   overlayCard: {
@@ -362,9 +403,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    borderLeftWidth: 4, // Industrial accent on left
+    borderLeftColor: Tokens.colors.neutral.border,
   },
   overlayCardActive: {
     borderColor: Tokens.colors.brand[500],
+    borderLeftColor: Tokens.colors.brand[500],
+    backgroundColor: Tokens.colors.neutral.dark, // Slightly lighter when active
   },
   overlayTitle: {
     fontFamily: Tokens.type.fontFamily.sans,
@@ -379,6 +424,17 @@ const styles = StyleSheet.create({
     fontSize: Tokens.type.xs,
     color: Tokens.colors.text.secondary,
     letterSpacing: 0.5,
+  },
+  overlayStatus: {
+    fontFamily: Tokens.type.fontFamily.sans,
+    fontSize: Tokens.type.xs,
+    fontWeight: '700',
+    color: Tokens.colors.text.secondary,
+    letterSpacing: 0.5,
+    marginTop: Tokens.spacing[2],
+  },
+  overlayStatusActive: {
+    color: Tokens.colors.success.main,
   },
   overlaySwitchHitTarget: {
     minWidth: Tokens.layout.minTapTargetComfortable,
@@ -395,4 +451,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
-

@@ -12,29 +12,32 @@ type PomodoroState = {
   sessions: number;
 };
 
-const TITLE_SIZE = 40;
 const SESSION_BADGE_SIZE = 28;
 const TIMER_CARD_SIZE = 280;
 const TIMER_TEXT_SHADOW = '0 0 0 rgba(0,0,0,0)'; // Removed shadow
+const FOCUS_DURATION_SECONDS = 25 * 60;
+const BREAK_DURATION_SECONDS = 5 * 60;
+const PERSIST_INTERVAL_MS = 5000;
 
 const PHASE_STYLES = {
   focus: {
     bg: 'rgba(239, 68, 68, 0.05)',
-    glow: `0 0 0 transparent`,
+    glow: '0 0 0 transparent',
   },
   break: {
     bg: 'rgba(34, 197, 94, 0.05)',
-    glow: `0 0 0 transparent`,
+    glow: '0 0 0 transparent',
   },
 };
 
 const PomodoroScreen = () => {
   const [isWorking, setIsWorking] = useState(true);
-  const [timeLeft, setTimeLeft] = useState(1500);
+  const [timeLeft, setTimeLeft] = useState(FOCUS_DURATION_SECONDS);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isWorkingRef = useRef(isWorking);
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     isWorkingRef.current = isWorking;
@@ -73,11 +76,23 @@ const PomodoroScreen = () => {
   }, []);
 
   useEffect(() => {
-    StorageService.setJSON(StorageService.STORAGE_KEYS.pomodoroState, {
-      isWorking,
-      timeLeft,
-      sessions,
-    });
+    if (persistTimerRef.current) {
+      clearTimeout(persistTimerRef.current);
+    }
+
+    persistTimerRef.current = setTimeout(() => {
+      StorageService.setJSON(StorageService.STORAGE_KEYS.pomodoroState, {
+        isWorking,
+        timeLeft,
+        sessions,
+      });
+    }, PERSIST_INTERVAL_MS);
+
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+      }
+    };
   }, [isWorking, timeLeft, sessions]);
 
   const startTimer = () => {
@@ -89,11 +104,11 @@ const PomodoroScreen = () => {
             setSessions((s) => s + 1);
             setIsWorking(false);
             SoundService.playCompletionSound();
-            return 300;
+            return BREAK_DURATION_SECONDS;
           } else {
             setIsWorking(true);
             SoundService.playNotificationSound();
-            return 1500;
+            return FOCUS_DURATION_SECONDS;
           }
         }
         return prev - 1;
@@ -111,7 +126,7 @@ const PomodoroScreen = () => {
   const resetTimer = () => {
     setIsRunning(false);
     setIsWorking(true);
-    setTimeLeft(1500);
+    setTimeLeft(FOCUS_DURATION_SECONDS);
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }

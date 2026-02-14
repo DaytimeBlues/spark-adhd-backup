@@ -1,7 +1,9 @@
 package com.sparkadhd;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
@@ -16,6 +18,8 @@ import com.facebook.react.bridge.ReactMethod;
 
 public class OverlayModule extends ReactContextBaseJavaModule {
   private static final int OVERLAY_PERMISSION_REQUEST_CODE = 4242;
+  private static final String PREFS_NAME = "spark_overlay_prefs";
+  private static final String KEY_LAST_COUNT = "last_count";
   private final ReactApplicationContext reactContext;
   private Promise pendingPermissionPromise;
   private final BaseActivityEventListener activityEventListener = new BaseActivityEventListener() {
@@ -56,7 +60,14 @@ public class OverlayModule extends ReactContextBaseJavaModule {
 
   @ReactMethod
   public void updateCount(int count) {
-    OverlayService.updateCount(count);
+    OverlayService service = OverlayService.getInstance();
+    if (service != null) {
+      OverlayService.updateCount(count);
+      return;
+    }
+
+    SharedPreferences preferences = reactContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+    preferences.edit().putInt(KEY_LAST_COUNT, count).apply();
   }
 
   @ReactMethod
