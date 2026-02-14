@@ -74,6 +74,7 @@ const BrainDumpScreen = () => {
   const [recordingState, setRecordingState] = useState<RecordingState>('idle');
   const [recordingError, setRecordingError] = useState<string | null>(null);
   const [isSorting, setIsSorting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [sortingError, setSortingError] = useState<string | null>(null);
   const [sortedItems, setSortedItems] = useState<SortedItem[]>([]);
   const hasAutoRecorded = useRef(false);
@@ -84,19 +85,22 @@ const BrainDumpScreen = () => {
   const lastOverlayCountRef = useRef<number>(0);
 
   const loadItems = async () => {
-    const storedItems = await StorageService.getJSON<DumpItem[]>(
-      StorageService.STORAGE_KEYS.brainDump,
-    );
-    if (!storedItems || !Array.isArray(storedItems)) {
-      return;
+    try {
+      const storedItems = await StorageService.getJSON<DumpItem[]>(
+        StorageService.STORAGE_KEYS.brainDump,
+      );
+      if (storedItems && Array.isArray(storedItems)) {
+        const normalized = storedItems.filter((item) => {
+          return Boolean(item?.id && item?.text && item?.createdAt);
+        });
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+        setItems(normalized);
+      }
+    } catch (error) {
+      console.error('Failed to load items', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    const normalized = storedItems.filter((item) => {
-      return Boolean(item?.id && item?.text && item?.createdAt);
-    });
-
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setItems(normalized);
   };
 
   useEffect(() => {
@@ -393,12 +397,23 @@ const BrainDumpScreen = () => {
                 {recordingState === 'processing' && 'PROCESSING...'}
               </Text>
             </Pressable>
+            {recordingState === 'idle' && (
+              <Text style={styles.recordHint}>AUTO-TRANSCRIBED SECURELY</Text>
+            )}
             {recordingError && (
               <Text style={styles.errorText}>{recordingError}</Text>
             )}
           </View>
 
-          {items.length > 0 && (
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator
+                size="small"
+                color={Tokens.colors.brand[500]}
+              />
+              <Text style={styles.loadingText}>LOADING THOUGHTS...</Text>
+            </View>
+          ) : items.length > 0 ? (
             <View style={styles.actionsBar}>
               <Text style={styles.countText}>{items.length} ITEMS</Text>
               <View style={styles.actionsRight}>
@@ -446,11 +461,11 @@ const BrainDumpScreen = () => {
                 </Pressable>
               </View>
             </View>
-          )}
+          ) : null}
 
           {sortingError && <Text style={styles.errorText}>{sortingError}</Text>}
 
-          {groupedSortedItems.length > 0 && (
+          {!isLoading && groupedSortedItems.length > 0 && (
             <View style={styles.sortedSection}>
               <Text style={styles.sortedTitle}>AI SUGGESTIONS</Text>
               {groupedSortedItems.map(({ category, items: categoryItems }) => (
@@ -479,28 +494,30 @@ const BrainDumpScreen = () => {
             </View>
           )}
 
-          <FlatList
-            data={items}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            updateCellsBatchingPeriod={50}
-            windowSize={11}
-            removeClippedSubviews={Platform.OS === 'android'}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyIcon}>☁️</Text>
-                <Text style={styles.emptyText}>
-                  YOUR MIND IS CLEAR... FOR NOW.
-                </Text>
-              </View>
-            }
-          />
+          {!isLoading && (
+            <FlatList
+              data={items}
+              keyExtractor={(item) => item.id}
+              renderItem={renderItem}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              updateCellsBatchingPeriod={50}
+              windowSize={11}
+              removeClippedSubviews={Platform.OS === 'android'}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListEmptyComponent={
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyIcon}>☁️</Text>
+                  <Text style={styles.emptyText}>
+                    YOUR MIND IS CLEAR... FOR NOW.
+                  </Text>
+                </View>
+              }
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -831,12 +848,32 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     letterSpacing: 1,
   },
+  recordHint: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.xxs,
+    color: '#666666',
+    marginTop: Tokens.spacing[2],
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
   errorText: {
     fontFamily: Tokens.type.fontFamily.mono,
     fontSize: Tokens.type.xs,
     color: '#CC0000',
     marginTop: Tokens.spacing[2],
     textAlign: 'center',
+  },
+  loadingContainer: {
+    padding: Tokens.spacing[8],
+    alignItems: 'center',
+    gap: Tokens.spacing[4],
+  },
+  loadingText: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.sm,
+    color: '#666666',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 

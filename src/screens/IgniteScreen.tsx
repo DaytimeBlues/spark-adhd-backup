@@ -6,6 +6,7 @@ import {
   Pressable,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import SoundService from '../services/SoundService';
 import StorageService from '../services/StorageService';
@@ -19,6 +20,7 @@ const PERSIST_INTERVAL_MS = 5000;
 
 const IgniteScreen = () => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(true);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { timeLeft, isRunning, formattedTime, start, pause, reset, setTime } =
@@ -33,21 +35,26 @@ const IgniteScreen = () => {
     SoundService.initBrownNoise();
 
     const loadState = async () => {
-      const storedState = await StorageService.getJSON<{
-        timeLeft: number;
-        isPlaying: boolean;
-      }>(StorageService.STORAGE_KEYS.igniteState);
-      if (!storedState) {
-        return;
-      }
+      try {
+        const storedState = await StorageService.getJSON<{
+          timeLeft: number;
+          isPlaying: boolean;
+        }>(StorageService.STORAGE_KEYS.igniteState);
 
-      if (typeof storedState.timeLeft === 'number') {
-        setTime(storedState.timeLeft);
-      }
+        if (storedState) {
+          if (typeof storedState.timeLeft === 'number') {
+            setTime(storedState.timeLeft);
+          }
 
-      if (storedState.isPlaying) {
-        setIsPlaying(true);
-        SoundService.playBrownNoise();
+          if (storedState.isPlaying) {
+            setIsPlaying(true);
+            SoundService.playBrownNoise();
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load ignite state', error);
+      } finally {
+        setIsRestoring(false);
       }
     };
 
@@ -113,74 +120,92 @@ const IgniteScreen = () => {
             <Text style={styles.subtitle}>5-MINUTE FOCUS TIMER</Text>
           </View>
 
-          <View style={styles.timerCard}>
-            <Text style={styles.timer}>{formattedTime}</Text>
-            <Text style={styles.status}>
-              {isRunning ? '🔥 FOCUS MODE' : 'READY TO IGNITE?'}
-            </Text>
-          </View>
-
-          <View style={styles.controls}>
-            {!isRunning ? (
-              <LinearButton
-                title="START FOCUS"
-                onPress={startTimer}
-                size="lg"
-                style={styles.mainButton}
+          {isRestoring ? (
+            <View style={styles.timerCard}>
+              <ActivityIndicator
+                size="small"
+                color={Tokens.colors.brand[500]}
               />
-            ) : (
-              <LinearButton
-                title="PAUSE"
-                variant="secondary"
-                onPress={pauseTimer}
-                size="lg"
-                style={styles.mainButton}
-              />
-            )}
-
-            <LinearButton
-              title="RESET"
-              variant="ghost"
-              onPress={resetTimer}
-              size="md"
-            />
-          </View>
-
-          <Pressable
-            style={({
-              pressed,
-              hovered,
-            }: {
-              pressed: boolean;
-              hovered?: boolean;
-            }) => [
-              styles.soundToggle,
-              isPlaying ? styles.soundToggleActive : styles.soundToggleInactive,
-              hovered && styles.soundToggleHovered,
-              pressed && styles.soundTogglePressed,
-            ]}
-            onPress={toggleSound}
-          >
-            <Text style={styles.soundIcon}>{isPlaying ? '🔊' : '🔇'}</Text>
-            <View>
-              <Text
-                style={[
-                  styles.soundTitle,
-                  isPlaying ? styles.soundTextActive : styles.soundTextInactive,
-                ]}
-              >
-                BROWN NOISE
-              </Text>
-              <Text
-                style={[
-                  styles.soundStatus,
-                  isPlaying ? styles.soundTextActive : styles.soundTextInactive,
-                ]}
-              >
-                {isPlaying ? 'ON' : 'OFF'}
-              </Text>
+              <Text style={styles.restoringText}>RESTORING SESSION...</Text>
             </View>
-          </Pressable>
+          ) : (
+            <>
+              <View style={styles.timerCard}>
+                <Text style={styles.timer}>{formattedTime}</Text>
+                <Text style={styles.status}>
+                  {isRunning ? '🔥 FOCUS MODE' : 'READY TO IGNITE?'}
+                </Text>
+              </View>
+
+              <View style={styles.controls}>
+                {!isRunning ? (
+                  <LinearButton
+                    title="START FOCUS"
+                    onPress={startTimer}
+                    size="lg"
+                    style={styles.mainButton}
+                  />
+                ) : (
+                  <LinearButton
+                    title="PAUSE"
+                    variant="secondary"
+                    onPress={pauseTimer}
+                    size="lg"
+                    style={styles.mainButton}
+                  />
+                )}
+
+                <LinearButton
+                  title="RESET"
+                  variant="ghost"
+                  onPress={resetTimer}
+                  size="md"
+                />
+              </View>
+
+              <Pressable
+                style={({
+                  pressed,
+                  hovered,
+                }: {
+                  pressed: boolean;
+                  hovered?: boolean;
+                }) => [
+                  styles.soundToggle,
+                  isPlaying
+                    ? styles.soundToggleActive
+                    : styles.soundToggleInactive,
+                  hovered && styles.soundToggleHovered,
+                  pressed && styles.soundTogglePressed,
+                ]}
+                onPress={toggleSound}
+              >
+                <Text style={styles.soundIcon}>{isPlaying ? '🔊' : '🔇'}</Text>
+                <View>
+                  <Text
+                    style={[
+                      styles.soundTitle,
+                      isPlaying
+                        ? styles.soundTextActive
+                        : styles.soundTextInactive,
+                    ]}
+                  >
+                    BROWN NOISE
+                  </Text>
+                  <Text
+                    style={[
+                      styles.soundStatus,
+                      isPlaying
+                        ? styles.soundTextActive
+                        : styles.soundTextInactive,
+                    ]}
+                  >
+                    {isPlaying ? 'ON' : 'OFF'}
+                  </Text>
+                </View>
+              </Pressable>
+            </>
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -204,6 +229,14 @@ const styles = StyleSheet.create({
     padding: Tokens.spacing[6],
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  restoringText: {
+    marginTop: Tokens.spacing[4],
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.sm,
+    color: '#666666',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
   header: {
     marginBottom: Tokens.spacing[8],

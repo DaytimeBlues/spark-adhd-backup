@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   FlatList,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import StorageService from '../services/StorageService';
 import { generateId } from '../utils/helpers';
@@ -29,22 +30,27 @@ const FogCutterScreen = () => {
   const [newStep, setNewStep] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
   const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const loadTasks = async () => {
-      const storedTasks = await StorageService.getJSON<Task[]>(
-        StorageService.STORAGE_KEYS.tasks,
-      );
-      if (!storedTasks || !Array.isArray(storedTasks)) {
-        return;
-      }
-
-      const normalized = storedTasks.filter((item) => {
-        return Boolean(
-          item?.id && item?.text && Array.isArray(item?.microSteps),
+      try {
+        const storedTasks = await StorageService.getJSON<Task[]>(
+          StorageService.STORAGE_KEYS.tasks,
         );
-      });
-      setTasks(normalized);
+        if (storedTasks && Array.isArray(storedTasks)) {
+          const normalized = storedTasks.filter((item) => {
+            return Boolean(
+              item?.id && item?.text && Array.isArray(item?.microSteps),
+            );
+          });
+          setTasks(normalized);
+        }
+      } catch (error) {
+        console.error('Failed to load tasks', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadTasks();
@@ -173,47 +179,56 @@ const FogCutterScreen = () => {
 
           <Text style={styles.sectionHeader}>ACTIVE TASKS</Text>
 
-          <FlatList
-            data={tasks}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.listContent}
-            renderItem={({ item }) => (
-              <Pressable
-                style={({
-                  pressed,
-                  hovered,
-                }: {
-                  pressed: boolean;
-                  hovered?: boolean;
-                }) => [
-                  styles.taskCard,
-                  item.completed && styles.taskCardCompleted,
-                  hovered && !item.completed && styles.taskCardHovered,
-                  pressed && !item.completed && styles.taskCardPressed,
-                ]}
-                onPress={() => toggleTask(item.id)}
-              >
-                <View style={styles.taskHeader}>
-                  <Text
-                    style={[
-                      styles.taskText,
-                      item.completed && styles.completed,
-                    ]}
-                  >
-                    {item.text}
-                  </Text>
-                  {item.completed && <Text style={styles.doneBadge}>DONE</Text>}
-                </View>
+          {isLoading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#FFFFFF" />
+              <Text style={styles.loadingText}>LOADING TASKS...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={tasks}
+              keyExtractor={(item) => item.id}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => (
+                <Pressable
+                  style={({
+                    pressed,
+                    hovered,
+                  }: {
+                    pressed: boolean;
+                    hovered?: boolean;
+                  }) => [
+                    styles.taskCard,
+                    item.completed && styles.taskCardCompleted,
+                    hovered && !item.completed && styles.taskCardHovered,
+                    pressed && !item.completed && styles.taskCardPressed,
+                  ]}
+                  onPress={() => toggleTask(item.id)}
+                >
+                  <View style={styles.taskHeader}>
+                    <Text
+                      style={[
+                        styles.taskText,
+                        item.completed && styles.completed,
+                      ]}
+                    >
+                      {item.text}
+                    </Text>
+                    {item.completed && (
+                      <Text style={styles.doneBadge}>DONE</Text>
+                    )}
+                  </View>
 
-                <View style={styles.stepCount}>
-                  <Text style={styles.stepCountText}>
-                    {item.microSteps.length} MICRO-STEPS
-                  </Text>
-                </View>
-              </Pressable>
-            )}
-            style={styles.taskList}
-          />
+                  <View style={styles.stepCount}>
+                    <Text style={styles.stepCountText}>
+                      {item.microSteps.length} MICRO-STEPS
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
+              style={styles.taskList}
+            />
+          )}
         </View>
       </View>
     </SafeAreaView>
@@ -466,6 +481,18 @@ const styles = StyleSheet.create({
     fontSize: Tokens.type.xs,
     fontWeight: '700',
     letterSpacing: 1,
+  },
+  loadingContainer: {
+    padding: Tokens.spacing[8],
+    alignItems: 'center',
+    gap: Tokens.spacing[4],
+  },
+  loadingText: {
+    fontFamily: Tokens.type.fontFamily.mono,
+    fontSize: Tokens.type.sm,
+    color: '#666666',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
   },
 });
 

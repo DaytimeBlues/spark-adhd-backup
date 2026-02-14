@@ -3,6 +3,11 @@ import React from 'react';
 import { Platform, Share } from 'react-native';
 import HomeScreen from '../src/screens/HomeScreen';
 
+jest.mock('../src/hooks/useReducedMotion', () => ({
+  __esModule: true,
+  default: () => false,
+}));
+
 const overlayListeners: Record<string, (() => void)[]> = {};
 
 const emitOverlayEvent = (eventName: string) => {

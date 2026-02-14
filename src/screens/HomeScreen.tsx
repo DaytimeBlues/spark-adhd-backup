@@ -24,6 +24,7 @@ import {
 } from 'react-native';
 import OverlayService from '../services/OverlayService';
 import StorageService from '../services/StorageService';
+import useReducedMotion from '../hooks/useReducedMotion';
 import { Tokens } from '../theme/tokens';
 import ModeCard, { ModeCardMode } from '../components/home/ModeCard';
 import { ROUTES } from '../navigation/routes';
@@ -56,6 +57,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
   const [isOverlayPermissionRequesting, setIsOverlayPermissionRequesting] =
     useState(false);
   const [overlayEvents, setOverlayEvents] = useState<OverlayEvent[]>([]);
+  const prefersReducedMotion = useReducedMotion();
 
   const handleCopyDiagnostics = useCallback(async () => {
     if (!__DEV__) {
@@ -206,6 +208,12 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     loadStreak();
     checkOverlayPermission();
 
+    if (prefersReducedMotion) {
+      fadeAnims.forEach((anim) => anim.setValue(1));
+      slideAnims.forEach((anim) => anim.setValue(0));
+      return;
+    }
+
     const animations = modes.map((_, i) => {
       return Animated.parallel([
         Animated.timing(fadeAnims[i], {
@@ -224,7 +232,14 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
     });
 
     Animated.stagger(ANIMATION_STAGGER, animations).start();
-  }, [checkOverlayPermission, fadeAnims, loadStreak, modes, slideAnims]);
+  }, [
+    checkOverlayPermission,
+    fadeAnims,
+    loadStreak,
+    modes,
+    prefersReducedMotion,
+    slideAnims,
+  ]);
 
   useEffect(() => {
     if (Platform.OS !== 'android') {
@@ -423,7 +438,7 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
               <View>
                 <Text style={styles.overlayTitle}>FOCUS OVERLAY</Text>
                 <Text style={styles.overlayDesc}>
-                  SHOW TASK COUNT WHILE YOU FOCUS
+                  FLOAT TASK COUNT OVER OTHER APPS
                 </Text>
                 <Text
                   style={[
@@ -435,8 +450,8 @@ const HomeScreen = ({ navigation }: { navigation: NavigationNode }) => {
                   {isOverlayPermissionRequesting
                     ? 'REQUESTING PERMISSION...'
                     : isOverlayEnabled
-                      ? 'ACTIVE • FLOATING OVER APPS'
-                      : 'REQUIRES PERMISSION'}
+                      ? 'ACTIVE • TAP TO DISABLE'
+                      : 'PERMISSION REQUIRED (TAP TO ENABLE)'}
                 </Text>
               </View>
               <View style={styles.overlaySwitchHitTarget}>
