@@ -24,7 +24,8 @@ module.exports = (env, argv) => {
             rules: [
                 {
                     test: /\.(js|jsx|ts|tsx)$/,
-                    exclude: /node_modules\/(?!(react-native-vector-icons|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native|@react-navigation)\/).*/,
+                    exclude:
+                        /node_modules\/(?!(react-native-vector-icons|react-native-reanimated|react-native-gesture-handler|react-native-screens|react-native-safe-area-context|@react-native|@react-navigation|expo|expo-.*|@expo|expo-modules-core)\/).*/,
                     use: {
                         loader: 'babel-loader',
                         options: {
